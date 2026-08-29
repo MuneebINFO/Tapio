@@ -54,7 +54,7 @@ by the module boundary: `core-nfc` has no file-transfer code.
 | `core-common` | Kotlin/JVM library | Shared domain types. `SharedContent` is the extension point for future content kinds (text, links, contacts). |
 | `core-nfc`    | Android library    | The tap. Session-token model, wire codec, APDU dialect, HCE service, reader-mode scanner, and testable interfaces (`NfcTokenAdvertiser` / `NfcTokenScanner`). |
 | `core-transfer` | Android library  | The transfer. Wi-Fi Direct connect off the NFC token, chunked streaming with `Flow` progress, SHA-256 verification, receiver-side staging with save/discard. |
-| `app`         | Android application | Jetpack Compose UI, MVVM, permission flows. Currently a thin shell showing NFC status. |
+| `app`         | Android application | Jetpack Compose UI, MVVM. Home / Send / Receive screens, the tap + transfer animations, the "Save this file?" dialog, haptics. Runs end-to-end on one device via `FakeTransferBackend`. |
 
 Dependency direction is strictly one-way: `app → core-transfer → core-nfc → core-common`.
 
@@ -105,6 +105,14 @@ committed wrapper — just use `./gradlew`.
 ./gradlew detekt            # static analysis (gates CI)
 ```
 
+### Trying it on one device
+
+Install the debug APK and open the app. Because there is no second phone (and no
+real NFC/Wi-Fi Direct backend yet), each screen shows a **"Démo"** button that
+stands in for the other device: on *Envoyer*, "simulate a peer picking up the
+file" runs the send animation to completion; on *Recevoir*, "simulate an incoming
+send" plays the arrival animation and the save dialog with a sample file.
+
 Point Gradle at your SDK with a `local.properties` file (auto-created by Android
 Studio) or the `ANDROID_HOME` environment variable.
 
@@ -135,8 +143,11 @@ the logic lives:
 - [x] **3 · `core-transfer`** — streaming engine, `Flow<TransferState>`, SHA-256
       verification, receiver staging, in-memory fakes, unit-tested. Wi-Fi Direct
       `WifiP2pConnector` written but still needs on-device validation.
-- [ ] **4 · UI/UX** — file picker, the tap animation, receiver arrival + save dialog, haptics.
-- [ ] **5 · Permissions & resilience** — runtime permission flows, no-NFC fallback, timeouts.
+- [x] **4 · UI/UX** — Compose screens, MVVM ViewModels (tested), the `RippleBeacon`
+      tap pulse + `TransferBeam` particle animation, animated state transitions, the
+      save dialog with preview, haptics, single-device demo mode.
+- [ ] **5 · Permissions & resilience** — runtime permission flows, real NFC + Wi-Fi
+      Direct backend wired into `TapioApplication`, no-NFC fallback, timeouts.
 - [ ] **6 · Ship** — instrumented tests, detekt gating in CI, KDoc, screenshots/GIFs, Play listing.
 - [ ] Later content kinds: text, links, contacts (via `SharedContent`).
 

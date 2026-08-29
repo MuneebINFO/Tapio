@@ -2,10 +2,65 @@
 <resources>
     <string name="app_name">Tapio</string>
 
-    <string name="home_title">Tapio</string>
-    <string name="home_tagline">Touch two phones to share a file</string>
+    <!-- Home -->
+    <string name="home_tagline">Approchez deux téléphones pour partager un fichier</string>
+    <string name="home_send">Envoyer</string>
+    <string name="home_receive">Recevoir</string>
+    <string name="home_nfc_disabled">Le NFC est désactivé. Activez-le dans les réglages pour partager par contact.</string>
+    <string name="home_nfc_unsupported">Cet appareil n\'a pas de NFC. Un mode de secours arrivera bientôt.</string>
 
-    <string name="nfc_ready">NFC is ready — pick a photo or video, then hold the phones together.</string>
-    <string name="nfc_disabled">NFC is turned off. Enable it in system settings to share by contact.</string>
-    <string name="nfc_unsupported">This device has no NFC. A fallback pairing method is coming soon.</string>
+    <string name="action_back">Retour</string>
+    <string name="action_retry">Réessayer</string>
+    <string name="action_done">Terminé</string>
+    <string name="action_cancel">Annuler</string>
+
+    <!-- Send -->
+    <string name="send_title">Envoyer</string>
+    <string name="send_pick_prompt">Choisissez une photo ou une vidéo à partager</string>
+    <string name="send_pick_button">Choisir dans la galerie</string>
+    <string name="send_ready">Approchez les téléphones</string>
+    <string name="send_ready_hint">Gardez-les en contact jusqu\'à la fin</string>
+    <string name="send_transferring">Envoi en cours…</string>
+    <string name="send_done">Envoyé</string>
+    <string name="send_another">Envoyer un autre fichier</string>
+
+    <!-- Receive -->
+    <string name="receive_title">Recevoir</string>
+    <string name="receive_waiting">En attente d\'un contact…</string>
+    <string name="receive_waiting_hint">Demandez à l\'autre personne d\'approcher son téléphone</string>
+    <string name="receive_connecting">Connexion…</string>
+    <string name="receive_receiving">Réception en cours…</string>
+    <string name="receive_verifying">Vérification du fichier…</string>
+    <string name="receive_saved">Fichier enregistré</string>
+    <string name="receive_declined">Fichier refusé</string>
+    <string name="receive_listen_again">Attendre un nouveau fichier</string>
+
+    <!-- Save dialog -->
+    <string name="save_dialog_title">Enregistrer ce fichier ?</string>
+    <string name="save_dialog_size">%1$s · %2$s</string>
+    <string name="save_dialog_accept">Enregistrer</string>
+    <string name="save_dialog_decline">Refuser</string>
+    <string name="save_thumbnail_cd">Aperçu du fichier reçu</string>
+
+    <!-- Demo (single-device) -->
+    <string name="demo_peer_pickup">Simuler le contact d\'un autre téléphone</string>
+    <string name="demo_peer_send">Simuler un envoi entrant</string>
+    <string name="demo_badge">Démo</string>
+
+    <!-- Errors -->
+    <string name="err_prepare_failed">Impossible de préparer le partage</string>
+    <string name="err_save_failed">Échec de l\'enregistrement du fichier</string>
+    <string name="err_nfc_disabled">Le NFC est désactivé</string>
+    <string name="err_nfc_unsupported">Cet appareil n\'a pas de NFC</string>
+    <string name="err_tag_lost">Les téléphones se sont éloignés trop tôt</string>
+    <string name="err_handshake_malformed">Échange initial illisible</string>
+    <string name="err_protocol_mismatch">L\'autre téléphone utilise une version incompatible de Tapio</string>
+    <string name="err_nfc_io">Erreur de communication NFC</string>
+    <string name="err_wifi_unavailable">Le Wi-Fi Direct n\'est pas disponible sur cet appareil</string>
+    <string name="err_permissions_missing">Autorisation requise pour les appareils Wi-Fi à proximité</string>
+    <string name="err_connection_timeout">Impossible de joindre l\'autre téléphone à temps</string>
+    <string name="err_connection_lost">Connexion perdue avec l\'autre téléphone</string>
+    <string name="err_checksum_mismatch">Le fichier reçu est corrompu</string>
+    <string name="err_malformed_stream">Transfert interrompu ou corrompu</string>
+    <string name="err_transfer_io">Le transfert a échoué</string>
 </resources>

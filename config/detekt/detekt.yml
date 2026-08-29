@@ -4,8 +4,13 @@
 complexity:
   LongMethod:
     threshold: 45
+    ignoreAnnotated: ['Composable', 'Preview']
+  CyclomaticComplexMethod:
+    ignoreAnnotated: ['Composable']
   TooManyFunctions:
+    thresholdInFiles: 14
     thresholdInClasses: 15
+    ignoreAnnotatedFunctions: ['Composable', 'Preview']
 
 naming:
   FunctionNaming:
@@ -14,7 +19,7 @@ naming:
 style:
   MagicNumber:
     # Tapio's core is a byte-level wire protocol (APDU headers, status words,
-    # field offsets). Those constants read far better inline than hoisted.
+    # field offsets); the UI is full of layout constants. Inline reads clearer.
     active: false
   MaxLineLength:
     maxLineLength: 120

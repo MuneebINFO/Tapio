@@ -13,16 +13,20 @@ import kotlinx.coroutines.flow.asSharedFlow
 
 /**
  * In-memory [NfcTokenAdvertiser] + [NfcTokenScanner] for tests, Compose previews and
- * running the app on a device with no NFC. Drive it from test code with [simulateTap].
+ * running the app on a device with no NFC. Drive it from test code with [simulateTap]
+ * (or [emitTap] from non-suspending code).
  *
  * Shipped in `main` (not `src/test`) so downstream modules — `core-transfer`, `:app` —
  * can depend on it without a test-fixtures setup.
+ *
+ * The tap stream keeps a `replay` of 1 so a collector that subscribes just after a
+ * tap still sees it — this removes a race in single-device demo flows.
  */
 class FakeNfcHandshake(
     var availability: NfcAvailability = NfcAvailability.Ready,
 ) : NfcTokenAdvertiser, NfcTokenScanner {
 
-    private val taps = MutableSharedFlow<HandshakeOutcome>(extraBufferCapacity = 16)
+    private val taps = MutableSharedFlow<HandshakeOutcome>(replay = 1, extraBufferCapacity = 16)
 
     /** The last token passed to [advertise], for assertions. */
     var advertisedToken: SessionToken? = null
@@ -41,6 +45,14 @@ class FakeNfcHandshake(
     /** Emits [outcome] to every active [scan] collector, as if a device had just tapped. */
     suspend fun simulateTap(outcome: HandshakeOutcome) {
         taps.emit(outcome)
+    }
+
+    /** Non-suspending [simulateTap] for callers without a coroutine (demo buttons, previews). */
+    fun emitTap(outcome: HandshakeOutcome): Boolean = taps.tryEmit(outcome)
+
+    /** Drops any buffered tap so the next [scan] collector starts clean. */
+    fun clearTaps() {
+        taps.resetReplayCache()
     }
 
     private fun failFastIfUnavailable() {
