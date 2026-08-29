@@ -27,3 +27,4 @@ rootProject.name = "Tapio"
 include(":app")
 include(":core-common")
 include(":core-nfc")
+include(":core-transfer")

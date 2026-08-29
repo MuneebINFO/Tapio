@@ -53,7 +53,7 @@ by the module boundary: `core-nfc` has no file-transfer code.
 |---------------|-------------------|----------------|
 | `core-common` | Kotlin/JVM library | Shared domain types. `SharedContent` is the extension point for future content kinds (text, links, contacts). |
 | `core-nfc`    | Android library    | The tap. Session-token model, wire codec, APDU dialect, HCE service, reader-mode scanner, and testable interfaces (`NfcTokenAdvertiser` / `NfcTokenScanner`). |
-| `core-transfer` | *(planned)*      | Wi-Fi Direct discovery, connection, chunked file transfer, checksum. |
+| `core-transfer` | Android library  | The transfer. Wi-Fi Direct connect off the NFC token, chunked streaming with `Flow` progress, SHA-256 verification, receiver-side staging with save/discard. |
 | `app`         | Android application | Jetpack Compose UI, MVVM, permission flows. Currently a thin shell showing NFC status. |
 
 Dependency direction is strictly one-way: `app → core-transfer → core-nfc → core-common`.
@@ -69,6 +69,27 @@ HandshakeCoordinator   availability guard + outcome stream for the UI  (unit-tes
 testing/FakeNfcHandshake   in-memory implementation for tests, previews, non-NFC devices
 android/         AndroidNfcAvailabilityChecker, HceTokenAdvertiser, TapioHostApduService,
                  ReaderModeTokenScanner   (the platform glue)
+```
+
+### `core-transfer` at a glance
+
+```
+domain/          TransferState, TransferProgress, TransferResult, TransferError, FileHeader, Checksum
+wire/            FileHeaderCodec, TransferFraming (len-prefixed header + bytes + SHA-256 trailer),
+                 Sha256   (all pure, unit-tested)
+FileSender / FileReceiver   the orchestrators — Flow<TransferState>, single streaming pass  (unit-tested)
+WifiDirectConnector / FileSource / FileSink   the ports (interfaces)
+IncomingFile     received + verified, awaiting the user's save()/discard()
+testing/         InMemoryTransferChannel, FakeWifiDirectConnector, InMemoryFileSource/Sink
+android/         WifiP2pConnector, ContentResolverFileSource, MediaStoreFileSink   (the platform glue)
+```
+
+On the wire:
+
+```
+┌────────────┬──────────────┬───────────────────┬──────────────────────┐
+│ int32 len  │ header (len) │ file bytes (size) │ SHA-256 trailer (32) │
+└────────────┴──────────────┴───────────────────┴──────────────────────┘
 ```
 
 ---
@@ -94,9 +115,12 @@ Studio) or the `ANDROID_HOME` environment variable.
 Unit tests run on the JVM — no emulator needed. The framework-free core is where
 the logic lives:
 
-- `SessionTokenCodecTest` — round-trips, and every malformed-payload branch.
-- `ApduProtocolTest` — APDU building/parsing.
-- `HandshakeCoordinatorTest` — availability guarding (JUnit + MockK).
+- `core-nfc` — `SessionTokenCodecTest` (round-trips + every malformed branch),
+  `ApduProtocolTest`, `HandshakeCoordinatorTest` (availability guarding, JUnit + MockK).
+- `core-transfer` — `FileHeaderCodecTest`, `TransferFramingTest`, `Sha256Test`,
+  `FileSenderTest` / `FileReceiverTest` (state machine + failure paths, driven by the
+  in-memory fakes), and `TransferRoundTripTest` (sender output → receiver input,
+  byte-for-byte).
 
 ```bash
 ./gradlew test
@@ -108,7 +132,9 @@ the logic lives:
 
 - [x] **1 · Project setup** — modules, version catalog, CI, detekt, this README.
 - [x] **2 · `core-nfc`** — contact detection + session-token exchange, unit-tested.
-- [ ] **3 · `core-transfer`** — Wi-Fi Direct connect, progress via `Flow`, checksum.
+- [x] **3 · `core-transfer`** — streaming engine, `Flow<TransferState>`, SHA-256
+      verification, receiver staging, in-memory fakes, unit-tested. Wi-Fi Direct
+      `WifiP2pConnector` written but still needs on-device validation.
 - [ ] **4 · UI/UX** — file picker, the tap animation, receiver arrival + save dialog, haptics.
 - [ ] **5 · Permissions & resilience** — runtime permission flows, no-NFC fallback, timeouts.
 - [ ] **6 · Ship** — instrumented tests, detekt gating in CI, KDoc, screenshots/GIFs, Play listing.

@@ -48,6 +48,7 @@ android {
 dependencies {
     implementation(project(":core-common"))
     implementation(project(":core-nfc"))
+    implementation(project(":core-transfer"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
