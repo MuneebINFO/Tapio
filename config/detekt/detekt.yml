@@ -7,6 +7,8 @@ complexity:
     ignoreAnnotated: ['Composable', 'Preview']
   CyclomaticComplexMethod:
     ignoreAnnotated: ['Composable']
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
   TooManyFunctions:
     thresholdInFiles: 14
     thresholdInClasses: 15
@@ -15,6 +17,9 @@ complexity:
 naming:
   FunctionNaming:
     ignoreAnnotated: ['Composable']
+  MatchingDeclarationName:
+    # UI component files legitimately group an enum + its composable + a preview.
+    active: false
 
 style:
   MagicNumber:

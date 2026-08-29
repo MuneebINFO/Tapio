@@ -143,9 +143,10 @@ the logic lives:
 - [x] **3 · `core-transfer`** — streaming engine, `Flow<TransferState>`, SHA-256
       verification, receiver staging, in-memory fakes, unit-tested. Wi-Fi Direct
       `WifiP2pConnector` written but still needs on-device validation.
-- [x] **4 · UI/UX** — Compose screens, MVVM ViewModels (tested), the `RippleBeacon`
-      tap pulse + `TransferBeam` particle animation, animated state transitions, the
-      save dialog with preview, haptics, single-device demo mode.
+- [x] **4 · UI/UX** — brand identity (the Tapio mark, adaptive icon, splash screen +
+      animated logo intro), Compose screens redesigned in a radial "Quick Share"
+      idiom, MVVM ViewModels (tested), `RippleBeacon` + `RadialTransfer` animations,
+      cross-faded states, the save dialog, haptics, single-device demo mode.
 - [ ] **5 · Permissions & resilience** — runtime permission flows, real NFC + Wi-Fi
       Direct backend wired into `TapioApplication`, no-NFC fallback, timeouts.
 - [ ] **6 · Ship** — instrumented tests, detekt gating in CI, KDoc, screenshots/GIFs, Play listing.

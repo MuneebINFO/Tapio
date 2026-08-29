@@ -3,17 +3,23 @@ package com.tapio.app.ui.send
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -21,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -32,15 +39,15 @@ import com.tapio.app.R
 import com.tapio.app.data.TransferBackend
 import com.tapio.app.data.toSharedContent
 import com.tapio.app.ui.components.AnimatedStatus
+import com.tapio.app.ui.components.ErrorMark
+import com.tapio.app.ui.components.FileCard
+import com.tapio.app.ui.components.RadialTransfer
 import com.tapio.app.ui.components.RippleBeacon
-import com.tapio.app.ui.components.TapioTopBar
-import com.tapio.app.ui.components.ThumbnailImage
-import com.tapio.app.ui.components.TransferBeam
-import com.tapio.app.ui.components.formatBytes
+import com.tapio.app.ui.components.SuccessMark
+import com.tapio.app.ui.components.TapioScaffold
 import com.tapio.app.ui.haptics.rememberTapioHaptics
 import com.tapio.app.ui.model.SendUiState
 import com.tapio.app.ui.theme.TapioTheme
-import com.tapio.core.common.SharedContent
 
 @Composable
 fun SendScreen(
@@ -53,11 +60,12 @@ fun SendScreen(
     val context = LocalContext.current
     val haptics = rememberTapioHaptics()
 
-    val picker = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickVisualMedia(),
-    ) { uri ->
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let { viewModel.onFilePicked(it.toSharedContent(context)) }
     }
+    fun launchPicker() = picker.launch(
+        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
+    )
 
     LaunchedEffect(state::class) {
         when (state) {
@@ -68,44 +76,66 @@ fun SendScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier,
-        topBar = { TapioTopBar(stringResource(R.string.send_title), onBack) },
-    ) { insets ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(insets)
-                .padding(horizontal = 32.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            AnimatedStatus(targetState = state) { current ->
-                when (current) {
-                    SendUiState.PickingFile -> PickFile(
-                        onPick = {
-                            picker.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
-                            )
-                        },
-                    )
+    TapioScaffold(modifier = modifier, title = stringResource(R.string.send_title), onBack = onBack) { content ->
+        Column(modifier = content, horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                AnimatedStatus(targetState = state) { current ->
+                    when (current) {
+                        SendUiState.PickingFile -> PickStage()
+                        is SendUiState.ReadyToTap -> Stage(
+                            visual = { RippleBeacon(modifier = Modifier.size(230.dp)) },
+                            title = stringResource(R.string.send_ready),
+                            subtitle = stringResource(R.string.send_ready_hint),
+                        )
 
-                    is SendUiState.ReadyToTap -> ReadyToTap(current.file)
-                    is SendUiState.Transferring -> Transferring(current.file, current.progress)
-                    is SendUiState.Sent -> Sent(onAnother = viewModel::reset, onDone = onBack)
-                    is SendUiState.Failed -> Failed(
-                        messageRes = current.messageRes,
-                        onRetry = viewModel::retry,
-                        onBack = onBack,
-                    )
+                        is SendUiState.Transferring -> Stage(
+                            visual = { RadialTransfer(progress = current.progress, modifier = Modifier.size(250.dp)) },
+                            title = stringResource(R.string.send_transferring),
+                            subtitle = "${(current.progress * 100).toInt()} %",
+                        )
+
+                        is SendUiState.Sent -> Stage(
+                            visual = { SuccessMark() },
+                            title = stringResource(R.string.send_done),
+                            subtitle = null,
+                        )
+
+                        is SendUiState.Failed -> Stage(
+                            visual = { ErrorMark() },
+                            title = stringResource(current.messageRes),
+                            subtitle = null,
+                        )
+                    }
                 }
             }
 
-            val demo = backend.demo
-            if (demo != null && state is SendUiState.ReadyToTap) {
-                DemoHint(
-                    text = stringResource(R.string.demo_peer_pickup),
-                    onClick = demo::peerPicksUpFile,
-                    modifier = Modifier.align(Alignment.BottomCenter),
+            BottomBar(
+                state = state,
+                onPick = ::launchPicker,
+                onRetry = viewModel::retry,
+                onAnother = viewModel::reset,
+                onBack = onBack,
+                onSimulateContact = backend.demo?.let { { it.peerPicksUpFile() } },
+            )
+        }
+    }
+}
+
+@Composable
+private fun Stage(visual: @Composable () -> Unit, title: String, subtitle: String?) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) { visual() }
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
             }
         }
@@ -113,114 +143,104 @@ fun SendScreen(
 }
 
 @Composable
-private fun PickFile(onPick: () -> Unit) {
-    CenteredColumn {
-        Text(
-            text = stringResource(R.string.send_pick_prompt),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-        )
-        Button(onClick = onPick) { Text(stringResource(R.string.send_pick_button)) }
-    }
-}
-
-@Composable
-private fun ReadyToTap(file: SharedContent.File) {
-    CenteredColumn {
-        RippleBeacon(modifier = Modifier.size(200.dp))
-        Text(stringResource(R.string.send_ready), style = MaterialTheme.typography.headlineSmall)
-        Text(
-            stringResource(R.string.send_ready_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        FileRow(file)
-    }
-}
-
-@Composable
-private fun Transferring(file: SharedContent.File, progress: Float) {
-    CenteredColumn {
-        Text(stringResource(R.string.send_transferring), style = MaterialTheme.typography.headlineSmall)
-        TransferBeam(progress = progress, modifier = Modifier.fillMaxWidth())
-        FileRow(file)
-    }
-}
-
-@Composable
-private fun Sent(onAnother: () -> Unit, onDone: () -> Unit) {
-    CenteredColumn {
-        Text(stringResource(R.string.send_done), style = MaterialTheme.typography.headlineMedium)
-        Button(onClick = onAnother) { Text(stringResource(R.string.send_another)) }
-        TextButton(onClick = onDone) { Text(stringResource(R.string.action_done)) }
-    }
-}
-
-@Composable
-private fun Failed(messageRes: Int, onRetry: () -> Unit, onBack: () -> Unit) {
-    CenteredColumn {
-        Text(
-            text = stringResource(messageRes),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center,
-        )
-        Button(onClick = onRetry) { Text(stringResource(R.string.action_retry)) }
-        TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
-    }
-}
-
-@Composable
-private fun FileRow(file: SharedContent.File) {
-    androidx.compose.foundation.layout.Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+private fun PickStage() {
+    val transition = rememberInfiniteTransition(label = "pickHint")
+    val glow by transition.animateFloat(
+        0.4f,
+        1f,
+        infiniteRepeatable(tween(1600, easing = LinearEasing), RepeatMode.Reverse),
+        label = "glow",
+    )
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        ThumbnailImage(
-            uri = file.uri,
-            mimeType = file.mimeType,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
+        RippleBeacon(modifier = Modifier.size(180.dp).alpha(glow))
+        Text(
+            stringResource(R.string.send_pick_prompt),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
         )
-        Column {
-            Text(file.displayName, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
-            Text(
-                formatBytes(file.byteSize),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+    }
+}
+
+@Composable
+private fun BottomBar(
+    state: SendUiState,
+    onPick: () -> Unit,
+    onRetry: () -> Unit,
+    onAnother: () -> Unit,
+    onBack: () -> Unit,
+    onSimulateContact: (() -> Unit)?,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        val file = (state as? SendUiState.ReadyToTap)?.file
+            ?: (state as? SendUiState.Transferring)?.file
+        if (file != null) {
+            FileCard(file.displayName, file.mimeType, file.byteSize, thumbnailUri = file.uri)
+        }
+
+        when (state) {
+            SendUiState.PickingFile -> PrimaryButton(stringResource(R.string.send_pick_button), onPick)
+            is SendUiState.ReadyToTap -> {
+                if (onSimulateContact != null) {
+                    DemoButton(stringResource(R.string.demo_peer_pickup), onSimulateContact)
+                }
+            }
+
+            is SendUiState.Transferring -> Unit
+            is SendUiState.Sent -> {
+                PrimaryButton(stringResource(R.string.send_another), onAnother)
+                TextButton(onClick = onBack) { Text(stringResource(R.string.action_done)) }
+            }
+
+            is SendUiState.Failed -> {
+                PrimaryButton(stringResource(R.string.action_retry), onRetry)
+                TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
+            }
         }
     }
 }
 
 @Composable
-private fun CenteredColumn(content: @Composable () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        modifier = Modifier.fillMaxWidth(),
+private fun PrimaryButton(text: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp),
     ) {
-        content()
+        Text(text, style = MaterialTheme.typography.labelLarge)
     }
 }
 
 @Composable
-private fun DemoHint(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    TextButton(onClick = onClick, modifier = modifier.padding(bottom = 24.dp)) {
-        Text("▶ $text", style = MaterialTheme.typography.labelLarge)
+private fun DemoButton(text: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick) {
+        Text("▶  $text", style = MaterialTheme.typography.labelLarge)
     }
 }
 
-private val previewFile = SharedContent.File("content://x", "vacances.jpg", "image/jpeg", 1_887_436)
+@Preview
+@Composable
+private fun ReadyPreview() = TapioTheme {
+    Column(Modifier.fillMaxSize()) {
+        Stage({ RippleBeacon(Modifier.size(200.dp)) }, "Approchez les téléphones", "Gardez-les en contact")
+    }
+}
 
 @Preview
 @Composable
-private fun ReadyPreview() = TapioTheme(dynamicColor = false) { ReadyToTap(previewFile) }
+private fun TransferringPreview() = TapioTheme {
+    Stage({ RadialTransfer(0.46f, Modifier.size(240.dp)) }, "Envoi en cours…", "46 %")
+}
 
 @Preview
 @Composable
-private fun TransferringPreview() = TapioTheme(dynamicColor = false) { Transferring(previewFile, 0.42f) }
-
-@Preview
-@Composable
-private fun SentPreview() = TapioTheme(dynamicColor = false) { Sent({}, {}) }
+private fun DonePreview() = TapioTheme { Stage({ SuccessMark() }, "Envoyé", null) }

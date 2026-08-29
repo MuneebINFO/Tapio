@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base theme; Compose drives the actual colours (dark by default, see ui/theme). -->
+
+    <!-- Applied once Compose takes over; Compose drives the real colours. -->
     <style name="Theme.Tapio" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/tapio_splash_bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Cold-start splash: the Tapio mark on the brand colour, handed off to the
+         animated in-app intro (see IntroScreen) for visual continuity. -->
+    <style name="Theme.Tapio.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/tapio_splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/tapio_splash_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.Tapio</item>
     </style>
 </resources>

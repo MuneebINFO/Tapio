@@ -71,9 +71,6 @@ fun ThumbnailImage(
     }
 }
 
-private fun fileTypeLabel(mimeType: String): String =
-    mimeType.substringAfterLast('/', missingDelimiterValue = "fichier").uppercase()
-
 private fun loadThumbnail(context: Context, uri: String): ImageBitmap? = runCatching {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
     context.contentResolver

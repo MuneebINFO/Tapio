@@ -5,6 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -14,8 +17,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.tapio.app.data.TransferBackend
 import com.tapio.app.ui.home.HomeScreen
+import com.tapio.app.ui.intro.IntroScreen
 import com.tapio.app.ui.receive.ReceiveScreen
 import com.tapio.app.ui.send.SendScreen
 import com.tapio.app.ui.theme.TapioTheme
@@ -23,6 +28,7 @@ import com.tapio.app.ui.theme.TapioTheme
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -34,7 +40,16 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
+                    var showIntro by rememberSaveable { mutableStateOf(true) }
+
                     TapioApp(backend)
+
+                    AnimatedVisibility(
+                        visible = showIntro,
+                        exit = fadeOut(tween(200)),
+                    ) {
+                        IntroScreen(onFinished = { showIntro = false })
+                    }
                 }
             }
         }
@@ -53,9 +68,19 @@ private fun TapioApp(backend: TransferBackend) {
         Screen.HOME -> HomeScreen(
             onSend = { screen = Screen.SEND },
             onReceive = { screen = Screen.RECEIVE },
+            modifier = Modifier.fillMaxSize(),
         )
 
-        Screen.SEND -> SendScreen(backend = backend, onBack = { screen = Screen.HOME })
-        Screen.RECEIVE -> ReceiveScreen(backend = backend, onBack = { screen = Screen.HOME })
+        Screen.SEND -> SendScreen(
+            backend = backend,
+            onBack = { screen = Screen.HOME },
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        Screen.RECEIVE -> ReceiveScreen(
+            backend = backend,
+            onBack = { screen = Screen.HOME },
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }

@@ -5,9 +5,9 @@
     <!-- Home -->
     <string name="home_tagline">Approchez deux téléphones pour partager un fichier</string>
     <string name="home_send">Envoyer</string>
+    <string name="home_send_desc">Choisir une photo ou une vidéo</string>
     <string name="home_receive">Recevoir</string>
-    <string name="home_nfc_disabled">Le NFC est désactivé. Activez-le dans les réglages pour partager par contact.</string>
-    <string name="home_nfc_unsupported">Cet appareil n\'a pas de NFC. Un mode de secours arrivera bientôt.</string>
+    <string name="home_receive_desc">Attendre un fichier d\'un autre téléphone</string>
 
     <string name="action_back">Retour</string>
     <string name="action_retry">Réessayer</string>

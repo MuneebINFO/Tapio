@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="tapio_brand">#FF5A6CF0</color>
+    <color name="tapio_brand_deep">#FF3A47C4</color>
+    <color name="tapio_splash_bg">#FF4A5AE0</color>
+    <color name="tapio_on_brand">#FFFFFFFF</color>
+</resources>
