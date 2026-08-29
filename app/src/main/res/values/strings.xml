@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tapio</string>
+
+    <string name="home_title">Tapio</string>
+    <string name="home_tagline">Touch two phones to share a file</string>
+
+    <string name="nfc_ready">NFC is ready — pick a photo or video, then hold the phones together.</string>
+    <string name="nfc_disabled">NFC is turned off. Enable it in system settings to share by contact.</string>
+    <string name="nfc_unsupported">This device has no NFC. A fallback pairing method is coming soon.</string>
+</resources>

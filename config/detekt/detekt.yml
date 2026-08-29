@@ -1,0 +1,22 @@
+# Project overrides layered on top of detekt's default rules
+# (buildUponDefaultConfig = true). Only deviations from the defaults live here.
+
+complexity:
+  LongMethod:
+    threshold: 45
+  TooManyFunctions:
+    thresholdInClasses: 15
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+
+style:
+  MagicNumber:
+    # Tapio's core is a byte-level wire protocol (APDU headers, status words,
+    # field offsets). Those constants read far better inline than hoisted.
+    active: false
+  MaxLineLength:
+    maxLineLength: 120
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Composable', 'Preview']

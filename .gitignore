@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+# The wrapper JAR is intentionally committed (see gradle/wrapper/).
+
+# Android / IntelliJ
+*.iml
+.idea/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Kotlin
+.kotlin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keystores (never commit signing material)
+*.jks
+*.keystore
+!debug.keystore

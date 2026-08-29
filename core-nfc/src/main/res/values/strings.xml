@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tapio_hce_service_description">Tapio contact sharing</string>
+    <string name="tapio_aid_group_description">Tapio handshake</string>
+</resources>

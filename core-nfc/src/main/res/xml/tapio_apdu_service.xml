@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Declares Tapio's Host Card Emulation service. The sending device "becomes" an
+  NFC tag exposing a single proprietary AID; the receiving device selects that AID
+  in reader mode and reads the session token. See ApduProtocol for the wire format.
+-->
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/tapio_hce_service_description"
+    android:requireDeviceUnlock="false">
+
+    <aid-group
+        android:description="@string/tapio_aid_group_description"
+        android:category="other">
+        <!-- F0 'T' 'A' 'P' 'I' 'O' 01 -->
+        <aid-filter android:name="F0544150494F01" />
+    </aid-group>
+</host-apdu-service>
