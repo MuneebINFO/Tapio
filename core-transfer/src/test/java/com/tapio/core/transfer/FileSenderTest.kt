@@ -1,5 +1,7 @@
 package com.tapio.core.transfer
 
+import com.tapio.core.common.ContactCardCodec
+import com.tapio.core.common.ContentKind
 import com.tapio.core.transfer.domain.TransferError
 import com.tapio.core.transfer.domain.TransferResult
 import com.tapio.core.transfer.domain.TransferState
@@ -67,6 +69,28 @@ class FileSenderTest {
 
         assertEquals(payload.size.toLong(), lastProgress.progress.bytesTransferred)
         assertEquals(1f, lastProgress.progress.fraction)
+    }
+
+    @Test
+    fun `sends a contact card through the same framed channel`() = runTest {
+        val channel = InMemoryTransferChannel()
+        val sender = FileSender(
+            FakeWifiDirectConnector(channel),
+            InMemoryFileSource(emptyMap()),
+            TransferFixtures.config(),
+        )
+        val card = TransferFixtures.contactContent("Marie Curie", "0600000000")
+
+        val states = sender.send(card, TransferFixtures.token()).toList()
+
+        assertEquals(TransferState.Connecting, states.first())
+        assertTrue(states.last() is TransferState.Completed)
+
+        val wire = channel.writtenBytes().inputStream()
+        val header = TransferFraming.readHeader(wire)
+        assertEquals(ContentKind.CONTACT, header.contentKind)
+        assertEquals("Marie Curie", header.displayName)
+        assertEquals(card, ContactCardCodec.decode(wire.readFully(header.sizeBytes.toInt())))
     }
 
     @Test

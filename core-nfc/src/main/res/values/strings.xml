@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="tapio_hce_service_description">Tapio contact sharing</string>
+    <string name="tapio_hce_service_description">Tapio sharing</string>
     <string name="tapio_aid_group_description">Tapio handshake</string>
+    <string name="tapio_ndef_service_description">Tapio sharing (tap to open)</string>
+    <string name="tapio_ndef_aid_group_description">NDEF tag</string>
 </resources>

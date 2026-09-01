@@ -3,11 +3,11 @@
     <string name="app_name">Tapio</string>
 
     <!-- Home -->
-    <string name="home_tagline">Approchez deux téléphones pour partager un fichier</string>
+    <string name="home_tagline">Approchez deux téléphones pour partager</string>
     <string name="home_send">Envoyer</string>
-    <string name="home_send_desc">Choisir une photo ou une vidéo</string>
+    <string name="home_send_desc">Une photo, une vidéo ou un numéro</string>
     <string name="home_receive">Recevoir</string>
-    <string name="home_receive_desc">Attendre un fichier d\'un autre téléphone</string>
+    <string name="home_receive_desc">Attendre un envoi d\'un autre téléphone</string>
 
     <string name="action_back">Retour</string>
     <string name="action_retry">Réessayer</string>
@@ -16,40 +16,69 @@
 
     <!-- Send -->
     <string name="send_title">Envoyer</string>
-    <string name="send_pick_prompt">Choisissez une photo ou une vidéo à partager</string>
+    <string name="send_choose_prompt">Que voulez-vous partager ?</string>
+    <string name="send_choose_media">Photo ou vidéo</string>
+    <string name="send_choose_media_desc">Depuis la galerie</string>
+    <string name="send_choose_contact">Un numéro de téléphone</string>
+    <string name="send_choose_contact_desc">Le vôtre ou celui de quelqu\'un d\'autre</string>
     <string name="send_pick_button">Choisir dans la galerie</string>
     <string name="send_ready">Approchez les téléphones</string>
     <string name="send_ready_hint">Gardez-les en contact jusqu\'à la fin</string>
     <string name="send_transferring">Envoi en cours…</string>
     <string name="send_done">Envoyé</string>
-    <string name="send_another">Envoyer un autre fichier</string>
+    <string name="send_another">Partager autre chose</string>
+
+    <!-- Contact form -->
+    <string name="contact_form_title">Numéro à partager</string>
+    <string name="contact_form_name">Nom</string>
+    <string name="contact_form_number">Numéro de téléphone</string>
+    <string name="contact_form_org">Société (facultatif)</string>
+    <string name="contact_form_use_mine">Utiliser mon numéro</string>
+    <string name="contact_form_share">Partager ce numéro</string>
 
     <!-- Receive -->
     <string name="receive_title">Recevoir</string>
     <string name="receive_waiting">En attente d\'un contact…</string>
     <string name="receive_waiting_hint">Demandez à l\'autre personne d\'approcher son téléphone</string>
+    <string name="receive_accept_title">%1$s veut partager</string>
+    <string name="receive_accept">Accepter</string>
+    <string name="receive_refuse">Refuser</string>
     <string name="receive_connecting">Connexion…</string>
     <string name="receive_receiving">Réception en cours…</string>
-    <string name="receive_verifying">Vérification du fichier…</string>
+    <string name="receive_verifying">Vérification…</string>
     <string name="receive_saved">Fichier enregistré</string>
-    <string name="receive_declined">Fichier refusé</string>
-    <string name="receive_listen_again">Attendre un nouveau fichier</string>
+    <string name="receive_contact_saved">Contact ajouté</string>
+    <string name="receive_declined">Refusé</string>
+    <string name="receive_listen_again">Attendre un nouvel envoi</string>
 
-    <!-- Save dialog -->
+    <!-- Save file dialog -->
     <string name="save_dialog_title">Enregistrer ce fichier ?</string>
-    <string name="save_dialog_size">%1$s · %2$s</string>
     <string name="save_dialog_accept">Enregistrer</string>
     <string name="save_dialog_decline">Refuser</string>
     <string name="save_thumbnail_cd">Aperçu du fichier reçu</string>
 
+    <!-- Save contact dialog -->
+    <string name="save_contact_title">Enregistrer ce contact ?</string>
+    <string name="save_contact_accept">Ajouter aux contacts</string>
+    <string name="save_contact_decline">Refuser</string>
+
+    <string name="content_contact">Contact</string>
+
+    <!-- Incoming-transfer notification -->
+    <string name="notif_channel_name">Envois entrants</string>
+    <string name="notif_channel_desc">Quand quelqu\'un veut vous partager un fichier ou un contact</string>
+    <string name="notif_incoming_title">%1$s veut vous partager quelque chose</string>
+    <string name="notif_accept">Accepter</string>
+    <string name="notif_refuse">Refuser</string>
+
     <!-- Demo (single-device) -->
     <string name="demo_peer_pickup">Simuler le contact d\'un autre téléphone</string>
-    <string name="demo_peer_send">Simuler un envoi entrant</string>
-    <string name="demo_badge">Démo</string>
+    <string name="demo_peer_send_file">Simuler une photo entrante</string>
+    <string name="demo_peer_send_contact">Simuler un contact entrant</string>
 
     <!-- Errors -->
     <string name="err_prepare_failed">Impossible de préparer le partage</string>
-    <string name="err_save_failed">Échec de l\'enregistrement du fichier</string>
+    <string name="err_save_failed">Échec de l\'enregistrement</string>
     <string name="err_nfc_disabled">Le NFC est désactivé</string>
     <string name="err_nfc_unsupported">Cet appareil n\'a pas de NFC</string>
     <string name="err_tag_lost">Les téléphones se sont éloignés trop tôt</string>

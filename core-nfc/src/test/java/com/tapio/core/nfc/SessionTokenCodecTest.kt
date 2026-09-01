@@ -14,30 +14,32 @@ class SessionTokenCodecTest {
         sessionId = UUID.fromString("00000000-0000-0000-0000-0000000000ab"),
         wifiDirectMac = "A1:B2:C3:D4:E5:F6",
         deviceName = "Marie's Pixel | 8",
+        payloadSummary = "Une photo · 2,3 Mo",
         role = HandshakeRole.SENDER,
         issuedAtEpochMs = 1_724_900_000_000,
     )
 
+    private val v = SessionToken.CURRENT_PROTOCOL_VERSION
+
     @Test
     fun `encode then decode round-trips every field`() {
-        val decoded = SessionTokenCodec.decode(SessionTokenCodec.encode(sample))
-
-        assertEquals(sample, decoded)
+        assertEquals(sample, SessionTokenCodec.decode(SessionTokenCodec.encode(sample)))
     }
 
     @Test
-    fun `device name survives separators and unicode`() {
-        val tricky = sample.copy(deviceName = "N|cé's ☎ phone")
+    fun `free-text fields survive separators and unicode`() {
+        val tricky = sample.copy(deviceName = "N|cé's ☎ phone", payloadSummary = "Un | contact ✦")
 
         val decoded = SessionTokenCodec.decode(SessionTokenCodec.encode(tricky))
 
         assertEquals("N|cé's ☎ phone", decoded.deviceName)
+        assertEquals("Un | contact ✦", decoded.payloadSummary)
     }
 
     @Test
     fun `unknown magic prefix is rejected`() {
         val error = assertThrows(HandshakeError.MalformedPayload::class.java) {
-            SessionTokenCodec.decode("NOPE|1|x|y|z|0|AA==".toByteArray())
+            SessionTokenCodec.decode("NOPE|$v|x|y|z|0|AA==|AA==".toByteArray())
         }
         assertEquals("Malformed handshake payload: unexpected structure", error.message)
     }
@@ -45,7 +47,7 @@ class SessionTokenCodecTest {
     @Test
     fun `wrong field count is rejected`() {
         assertThrows(HandshakeError.MalformedPayload::class.java) {
-            SessionTokenCodec.decode("TAPIO|1|only-three|fields".toByteArray())
+            SessionTokenCodec.decode("TAPIO|$v|only-three|fields".toByteArray())
         }
     }
 
@@ -53,19 +55,19 @@ class SessionTokenCodecTest {
     fun `future protocol version raises ProtocolMismatch`() {
         val bytes = SessionTokenCodec.encode(sample)
             .toString(Charsets.UTF_8)
-            .replaceFirst("TAPIO|1|", "TAPIO|99|")
+            .replaceFirst("TAPIO|$v|", "TAPIO|99|")
             .toByteArray()
 
         val error = assertThrows(HandshakeError.ProtocolMismatch::class.java) {
             SessionTokenCodec.decode(bytes)
         }
         assertEquals(99, error.received)
-        assertEquals(SessionToken.CURRENT_PROTOCOL_VERSION, error.supported)
+        assertEquals(v, error.supported)
     }
 
     @Test
     fun `malformed MAC address is rejected`() {
-        val bytes = SessionTokenCodec.encode(sample.copy(wifiDirectMac = "A1:B2:C3:D4:E5:F6"))
+        val bytes = SessionTokenCodec.encode(sample)
             .toString(Charsets.UTF_8)
             .replace("A1:B2:C3:D4:E5:F6", "not-a-mac")
             .toByteArray()
@@ -78,7 +80,7 @@ class SessionTokenCodecTest {
     @Test
     fun `invalid session id is rejected`() {
         assertThrows(HandshakeError.MalformedPayload::class.java) {
-            SessionTokenCodec.decode("TAPIO|1|not-a-uuid|A1:B2:C3:D4:E5:F6|SENDER|0|QQ==".toByteArray())
+            SessionTokenCodec.decode("TAPIO|$v|not-a-uuid|A1:B2:C3:D4:E5:F6|SENDER|0|QQ==|QQ==".toByteArray())
         }
     }
 
@@ -86,7 +88,17 @@ class SessionTokenCodecTest {
     fun `unknown role is rejected`() {
         assertThrows(HandshakeError.MalformedPayload::class.java) {
             SessionTokenCodec.decode(
-                "TAPIO|1|00000000-0000-0000-0000-0000000000ab|A1:B2:C3:D4:E5:F6|MIDDLE|0|QQ=="
+                "TAPIO|$v|00000000-0000-0000-0000-0000000000ab|A1:B2:C3:D4:E5:F6|MIDDLE|0|QQ==|QQ=="
+                    .toByteArray(),
+            )
+        }
+    }
+
+    @Test
+    fun `blank payload summary is rejected`() {
+        assertThrows(HandshakeError.MalformedPayload::class.java) {
+            SessionTokenCodec.decode(
+                "TAPIO|$v|00000000-0000-0000-0000-0000000000ab|A1:B2:C3:D4:E5:F6|SENDER|0|QQ==|"
                     .toByteArray(),
             )
         }

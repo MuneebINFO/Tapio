@@ -10,39 +10,33 @@ import java.util.UUID
  * Serialises a [SessionToken] to/from the compact byte array carried in the NFC
  * exchange.
  *
- * The format is a single UTF-8 line of pipe-separated fields:
- *
  * ```
- * TAPIO|<version>|<sessionId>|<wifiDirectMac>|<role>|<issuedAtEpochMs>|<base64(deviceName)>
+ * TAPIO|<version>|<sessionId>|<wifiDirectMac>|<role>|<issuedAtEpochMs>|<b64(deviceName)>|<b64(payloadSummary)>
  * ```
  *
- * `deviceName` is Base64-encoded so it can contain any character (including `|`)
- * without escaping. The encoding is deliberately hand-rolled and dependency-free:
- * the payload is tiny and the parser stays trivially unit-testable on the JVM.
+ * Free-text fields are Base64 so they can hold any character (including `|`). The
+ * encoding is hand-rolled and dependency-free: the payload is tiny and the parser
+ * stays trivially unit-testable on the JVM.
  */
 object SessionTokenCodec {
 
     private const val MAGIC = "TAPIO"
     private const val SEPARATOR = "|"
-    private const val FIELD_COUNT = 7
+    private const val FIELD_COUNT = 8
 
     private val MAC_REGEX = Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
 
     /** Encodes [token] into the bytes to expose over NFC. */
-    fun encode(token: SessionToken): ByteArray {
-        val deviceName = Base64.getEncoder()
-            .encodeToString(token.deviceName.toByteArray(Charsets.UTF_8))
-
-        return listOf(
-            MAGIC,
-            token.protocolVersion.toString(),
-            token.sessionId.toString(),
-            token.wifiDirectMac,
-            token.role.name,
-            token.issuedAtEpochMs.toString(),
-            deviceName,
-        ).joinToString(SEPARATOR).toByteArray(Charsets.UTF_8)
-    }
+    fun encode(token: SessionToken): ByteArray = listOf(
+        MAGIC,
+        token.protocolVersion.toString(),
+        token.sessionId.toString(),
+        token.wifiDirectMac,
+        token.role.name,
+        token.issuedAtEpochMs.toString(),
+        encodeText(token.deviceName),
+        encodeText(token.payloadSummary),
+    ).joinToString(SEPARATOR).toByteArray(Charsets.UTF_8)
 
     /**
      * Parses bytes read from a peer back into a [SessionToken].
@@ -71,20 +65,29 @@ object SessionTokenCodec {
 
         val issuedAt = fields[5].toLongOrNull() ?: malformed("timestamp is not a number")
 
-        val deviceName = runCatching {
-            String(Base64.getDecoder().decode(fields[6]), Charsets.UTF_8)
-        }.getOrElse { malformed("device name is not valid Base64") }
+        val deviceName = decodeText(fields[6]) { "device name" }
         if (deviceName.isBlank()) malformed("device name is blank")
+
+        val payloadSummary = decodeText(fields[7]) { "payload summary" }
+        if (payloadSummary.isBlank()) malformed("payload summary is blank")
 
         return SessionToken(
             sessionId = sessionId,
             wifiDirectMac = wifiDirectMac,
             deviceName = deviceName,
+            payloadSummary = payloadSummary,
             role = role,
             issuedAtEpochMs = issuedAt,
             protocolVersion = version,
         )
     }
+
+    private fun encodeText(value: String): String =
+        Base64.getEncoder().encodeToString(value.toByteArray(Charsets.UTF_8))
+
+    private inline fun decodeText(value: String, field: () -> String): String =
+        runCatching { String(Base64.getDecoder().decode(value), Charsets.UTF_8) }
+            .getOrElse { malformed("${field()} is not valid Base64") }
 
     private fun malformed(reason: String): Nothing = throw HandshakeError.MalformedPayload(reason)
 }

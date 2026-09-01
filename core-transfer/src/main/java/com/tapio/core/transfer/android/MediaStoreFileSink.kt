@@ -9,7 +9,7 @@ import android.provider.MediaStore
 import com.tapio.core.transfer.FileSink
 import com.tapio.core.transfer.ReceivedFile
 import com.tapio.core.transfer.StagedFile
-import com.tapio.core.transfer.domain.FileHeader
+import com.tapio.core.transfer.domain.ContentHeader
 import com.tapio.core.transfer.domain.TransferError
 import java.io.IOException
 import java.io.OutputStream
@@ -23,7 +23,7 @@ class MediaStoreFileSink(context: Context) : FileSink {
 
     private val resolver = context.applicationContext.contentResolver
 
-    override suspend fun create(header: FileHeader): StagedFile {
+    override suspend fun create(header: ContentHeader): StagedFile {
         val collection = collectionFor(header.mimeType)
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, header.displayName)

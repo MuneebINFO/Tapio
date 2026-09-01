@@ -23,33 +23,14 @@ class TapioHostApduService : HostApduService() {
             ApduProtocol.selectedAid(apdu)?.contentEquals(ApduProtocol.TAPIO_AID) == true ->
                 ApduProtocol.STATUS_SUCCESS
 
-            ApduProtocol.isReadTokenApdu(apdu) -> {
-                val token = staged
-                if (token == null) {
-                    ApduProtocol.STATUS_NOT_FOUND
-                } else {
-                    ApduProtocol.withStatus(token)
-                }
-            }
+            ApduProtocol.isReadTokenApdu(apdu) ->
+                StagedHandshake.tokenBytes
+                    ?.let { ApduProtocol.withStatus(it) }
+                    ?: ApduProtocol.STATUS_NOT_FOUND
 
             else -> ApduProtocol.STATUS_UNSUPPORTED
         }
     }
 
     override fun onDeactivated(reason: Int) = Unit
-
-    companion object {
-        @Volatile
-        private var staged: ByteArray? = null
-
-        /** Publishes [tokenBytes] (from `SessionTokenCodec.encode`) to the next reader. */
-        fun stageToken(tokenBytes: ByteArray) {
-            staged = tokenBytes
-        }
-
-        /** Stops advertising; subsequent read attempts get [ApduProtocol.STATUS_NOT_FOUND]. */
-        fun clear() {
-            staged = null
-        }
-    }
 }

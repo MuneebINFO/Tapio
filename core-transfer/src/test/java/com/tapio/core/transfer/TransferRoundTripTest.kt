@@ -41,9 +41,31 @@ class TransferRoundTripTest {
         ).receive(TransferFixtures.token()).toList()
 
         val incoming = (states.last() as TransferState.Completed).result as TransferResult.Received
-        assertEquals("video.mp4", incoming.file.header.displayName)
+        val file = incoming.content as IncomingContent.File
+        assertEquals("video.mp4", file.header.displayName)
 
-        incoming.file.save()
+        file.save()
         assertArrayEquals(original, sink.persisted)
+    }
+
+    @Test
+    fun `sender and receiver round-trip a contact card`() = runTest {
+        val card = TransferFixtures.contactContent(name = "Ada Lovelace", number = "+44 20 7946 0000")
+        val senderChannel = InMemoryTransferChannel()
+
+        FileSender(
+            FakeWifiDirectConnector(senderChannel),
+            InMemoryFileSource(emptyMap()),
+            TransferFixtures.config(),
+        ).send(card, TransferFixtures.token()).collect()
+
+        val states = FileReceiver(
+            FakeWifiDirectConnector(InMemoryTransferChannel(senderChannel.writtenBytes())),
+            InMemoryFileSink(),
+            TransferFixtures.config(),
+        ).receive(TransferFixtures.token()).toList()
+
+        val received = (states.last() as TransferState.Completed).result as TransferResult.Received
+        assertEquals(card, (received.content as IncomingContent.Contact).card)
     }
 }

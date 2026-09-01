@@ -17,20 +17,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tapio.app.R
-import com.tapio.app.ui.components.ThumbnailImage
-import com.tapio.app.ui.components.fileTypeLabel
-import com.tapio.app.ui.components.formatBytes
+import com.tapio.app.ui.components.PersonAvatar
 import com.tapio.app.ui.theme.TapioTheme
-import com.tapio.core.common.ContentKind
-import com.tapio.core.transfer.domain.ContentHeader
+import com.tapio.core.common.SharedContent
 
 /**
- * The "Save this file?" modal shown the instant a file arrives and passes its
- * checksum. Preview + name + size, one clear accept and one clear decline.
+ * The "Save this contact?" modal, shown the instant a contact card arrives and
+ * verifies. Accepting opens the system "add contact" screen pre-filled with the
+ * name the sender chose.
  */
 @Composable
-fun SaveFileDialog(
-    header: ContentHeader,
+fun SaveContactDialog(
+    card: SharedContent.ContactCard,
     onAccept: () -> Unit,
     onDecline: () -> Unit,
 ) {
@@ -39,7 +37,7 @@ fun SaveFileDialog(
         shape = RoundedCornerShape(28.dp),
         title = {
             Text(
-                stringResource(R.string.save_dialog_title),
+                stringResource(R.string.save_contact_title),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -48,41 +46,33 @@ fun SaveFileDialog(
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                ThumbnailImage(
-                    uri = "",
-                    mimeType = header.mimeType,
-                    contentDescription = stringResource(R.string.save_thumbnail_cd),
-                    modifier = Modifier.size(148.dp),
-                )
+                PersonAvatar(modifier = Modifier.size(96.dp))
+                Text(card.displayName, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
                 Text(
-                    header.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    text = "${fileTypeLabel(header.mimeType)} · ${formatBytes(header.sizeBytes)}",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = listOfNotNull(card.phoneNumber, card.organization).joinToString("\n"),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = onAccept) { Text(stringResource(R.string.save_dialog_accept)) }
+            TextButton(onClick = onAccept) { Text(stringResource(R.string.save_contact_accept)) }
         },
         dismissButton = {
-            TextButton(onClick = onDecline) { Text(stringResource(R.string.save_dialog_decline)) }
+            TextButton(onClick = onDecline) { Text(stringResource(R.string.save_contact_decline)) }
         },
     )
 }
 
 @Preview
 @Composable
-private fun SaveFileDialogPreview() {
+private fun SaveContactDialogPreview() {
     TapioTheme {
-        SaveFileDialog(
-            header = ContentHeader(ContentKind.FILE, "photo-recue.jpg", "image/jpeg", 1_887_436),
+        SaveContactDialog(
+            card = SharedContent.ContactCard("Jean Dupont", "+33 6 12 34 56 78", "Café des Amis"),
             onAccept = {},
             onDecline = {},
         )

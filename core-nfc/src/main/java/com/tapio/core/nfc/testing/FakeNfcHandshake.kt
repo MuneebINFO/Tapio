@@ -51,6 +51,7 @@ class FakeNfcHandshake(
     fun emitTap(outcome: HandshakeOutcome): Boolean = taps.tryEmit(outcome)
 
     /** Drops any buffered tap so the next [scan] collector starts clean. */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun clearTaps() {
         taps.resetReplayCache()
     }

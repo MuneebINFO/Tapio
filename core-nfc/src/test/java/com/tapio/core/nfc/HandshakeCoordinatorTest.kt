@@ -45,6 +45,7 @@ class HandshakeCoordinatorTest {
             sessionId = UUID.randomUUID(),
             wifiDirectMac = "02:00:00:00:00:00",
             deviceName = "Peer",
+            payloadSummary = "Une photo",
             role = HandshakeRole.SENDER,
             issuedAtEpochMs = 0,
         )

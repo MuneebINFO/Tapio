@@ -2,7 +2,7 @@ package com.tapio.core.transfer
 
 import com.tapio.core.common.SharedContent
 import com.tapio.core.nfc.domain.SessionToken
-import com.tapio.core.transfer.domain.FileHeader
+import com.tapio.core.transfer.domain.ContentHeader
 import com.tapio.core.transfer.domain.TransferError
 import java.io.Closeable
 import java.io.InputStream
@@ -41,7 +41,7 @@ interface FileSource {
  * [StagedFile.discard]s it.
  */
 interface FileSink {
-    suspend fun create(header: FileHeader): StagedFile
+    suspend fun create(header: ContentHeader): StagedFile
 }
 
 /** A half-written destination for a received file. */

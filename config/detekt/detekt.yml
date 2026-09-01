@@ -28,5 +28,9 @@ style:
     active: false
   MaxLineLength:
     maxLineLength: 120
+  ReturnCount:
+    max: 4
+  ThrowsCount:
+    max: 4
   UnusedPrivateMember:
     ignoreAnnotated: ['Composable', 'Preview']

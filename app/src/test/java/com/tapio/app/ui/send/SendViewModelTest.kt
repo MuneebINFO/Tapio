@@ -42,6 +42,11 @@ class SendViewModelTest {
     )
 
     @Test
+    fun `starts on the type chooser`() = runTest(scheduler) {
+        assertEquals(SendUiState.ChoosingType, SendViewModel(backend()).state.value)
+    }
+
+    @Test
     fun `picking a file moves to ReadyToTap`() = runTest(scheduler) {
         val viewModel = SendViewModel(backend())
 
@@ -49,29 +54,63 @@ class SendViewModelTest {
 
         val state = viewModel.state.value
         assertTrue(state is SendUiState.ReadyToTap)
-        assertEquals(file, (state as SendUiState.ReadyToTap).file)
+        assertEquals(file, (state as SendUiState.ReadyToTap).content)
     }
 
     @Test
-    fun `a simulated peer pickup drives the transfer to Sent`() = runTest(scheduler) {
+    fun `entering a contact moves to ReadyToTap with a ContactCard`() = runTest(scheduler) {
+        val viewModel = SendViewModel(backend())
+
+        viewModel.onContactEntered("  Jean Dupont ", " +33 6 12 34 56 78 ", null)
+
+        val ready = viewModel.state.value as SendUiState.ReadyToTap
+        val card = ready.content as SharedContent.ContactCard
+        assertEquals("Jean Dupont", card.displayName)
+        assertEquals("+33 6 12 34 56 78", card.phoneNumber)
+    }
+
+    @Test
+    fun `a blank contact is ignored`() = runTest(scheduler) {
+        val viewModel = SendViewModel(backend())
+        viewModel.chooseContact()
+
+        viewModel.onContactEntered("", "", null)
+
+        assertEquals(SendUiState.EnteringContact, viewModel.state.value)
+    }
+
+    @Test
+    fun `a simulated peer pickup drives a file transfer to Sent`() = runTest(scheduler) {
         val backend = backend()
         val viewModel = SendViewModel(backend)
 
         viewModel.onFilePicked(file)
-        backend.demo.peerPicksUpFile()
+        backend.peerPicksUpContent()
         advanceUntilIdle()
 
         assertTrue("actual: ${viewModel.state.value}", viewModel.state.value is SendUiState.Sent)
     }
 
     @Test
-    fun `reset returns to the picker`() = runTest(scheduler) {
+    fun `a simulated peer pickup drives a contact transfer to Sent`() = runTest(scheduler) {
+        val backend = backend()
+        val viewModel = SendViewModel(backend)
+
+        viewModel.onContactEntered("Marie", "0601020304", null)
+        backend.peerPicksUpContent()
+        advanceUntilIdle()
+
+        assertTrue("actual: ${viewModel.state.value}", viewModel.state.value is SendUiState.Sent)
+    }
+
+    @Test
+    fun `reset returns to the type chooser`() = runTest(scheduler) {
         val viewModel = SendViewModel(backend())
         viewModel.onFilePicked(file)
 
         viewModel.reset()
 
-        assertEquals(SendUiState.PickingFile, viewModel.state.value)
+        assertEquals(SendUiState.ChoosingType, viewModel.state.value)
     }
 
     private companion object {

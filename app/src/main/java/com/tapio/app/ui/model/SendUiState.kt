@@ -6,21 +6,34 @@ import com.tapio.core.common.SharedContent
 /** Everything the send screen can be showing, in the order it usually happens. */
 sealed interface SendUiState {
 
-    /** No file chosen yet — show the picker call to action. */
-    data object PickingFile : SendUiState
+    /** Pick what to share: a photo/video, or a phone number. */
+    data object ChoosingType : SendUiState
 
-    /** File chosen, NFC token is live: "hold the phones together". */
-    data class ReadyToTap(val file: SharedContent.File) : SendUiState
+    /** Filling in the name + number to share. */
+    data object EnteringContact : SendUiState
+
+    /** Content chosen, NFC token is live: "hold the phones together". */
+    data class ReadyToTap(val content: SharedContent) : SendUiState
 
     /** The peer connected; bytes are moving. [progress] is `0f..1f`. */
-    data class Transferring(val file: SharedContent.File, val progress: Float) : SendUiState
+    data class Transferring(val content: SharedContent, val progress: Float) : SendUiState
 
     /** Done. */
-    data class Sent(val file: SharedContent.File) : SendUiState
+    data class Sent(val content: SharedContent) : SendUiState
 
     /** Something went wrong; [messageRes] is user-facing copy. */
     data class Failed(
-        val file: SharedContent.File?,
+        val content: SharedContent?,
         @param:StringRes val messageRes: Int,
     ) : SendUiState
+}
+
+/** Short line shown to the receiver in the accept prompt — never the payload itself. */
+fun SharedContent.handshakeSummary(): String = when (this) {
+    is SharedContent.ContactCard -> "Un contact"
+    is SharedContent.File -> when {
+        mimeType.startsWith("video/") -> "Une vidéo"
+        mimeType.startsWith("image/") -> "Une photo"
+        else -> "Un fichier"
+    }
 }

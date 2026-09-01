@@ -9,9 +9,9 @@ import com.tapio.core.transfer.FileSender
 /**
  * The seam between the UI/ViewModels and the `core-nfc` / `core-transfer` machinery.
  *
- * Two implementations exist: [FakeTransferBackend] (in-memory, drives both sides of
- * a transfer in-process — used by default so the app is fully explorable on any
- * device) and a real one backed by NFC + Wi-Fi Direct (wired once step 5 lands).
+ * [FakeTransferBackend] (in-memory, drives both sides of a transfer in-process)
+ * powers the app today; a real NFC + Wi-Fi Direct backend gets wired once step 5
+ * lands.
  */
 interface TransferBackend {
 
@@ -21,8 +21,11 @@ interface TransferBackend {
     fun newSender(): FileSender
     fun newReceiver(): FileReceiver
 
-    /** Sender side: prepare this device's Wi-Fi Direct endpoint and mint the NFC token. */
-    suspend fun createLocalToken(): SessionToken
+    /**
+     * Sender side: prepare this device's Wi-Fi Direct endpoint and mint the NFC
+     * token, embedding [payloadSummary] so the receiver can decide before receiving.
+     */
+    suspend fun createLocalToken(payloadSummary: String): SessionToken
 
     /** Debug affordances for exploring the flows on a single device; no-ops in production. */
     val demo: DemoControls?
@@ -31,9 +34,12 @@ interface TransferBackend {
 /** Single-device demo hooks — fake a second phone. */
 interface DemoControls {
 
-    /** From the send screen: pretend a peer tapped and is now pulling the file. */
-    fun peerPicksUpFile()
+    /** From the send screen: pretend a peer tapped and is now pulling the content. */
+    fun peerPicksUpContent()
 
-    /** From the receive screen: pretend a peer tapped and is sending us a sample file. */
+    /** From the receive screen: pretend a peer tapped and is sending us a sample photo. */
     fun peerSendsSampleFile()
+
+    /** From the receive screen: pretend a peer is sharing a contact card with us. */
+    fun peerSharesSampleContact()
 }

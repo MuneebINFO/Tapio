@@ -31,10 +31,10 @@ class HceTokenAdvertiser(context: Context) : NfcTokenAdvertiser {
         }
 
         try {
-            TapioHostApduService.stageToken(SessionTokenCodec.encode(token))
+            StagedHandshake.stage(SessionTokenCodec.encode(token))
             awaitCancellation()
         } finally {
-            TapioHostApduService.clear()
+            StagedHandshake.clear()
         }
     }
 }

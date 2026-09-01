@@ -8,7 +8,7 @@ import com.tapio.core.transfer.ReceivedFile
 import com.tapio.core.transfer.StagedFile
 import com.tapio.core.transfer.TransferChannel
 import com.tapio.core.transfer.WifiDirectConnector
-import com.tapio.core.transfer.domain.FileHeader
+import com.tapio.core.transfer.domain.ContentHeader
 import com.tapio.core.transfer.domain.TransferError
 import kotlinx.coroutines.delay
 import java.io.ByteArrayInputStream
@@ -84,10 +84,10 @@ class InMemoryFileSink : FileSink {
     var discarded: Boolean = false
         private set
 
-    lateinit var lastHeader: FileHeader
+    lateinit var lastHeader: ContentHeader
         private set
 
-    override suspend fun create(header: FileHeader): StagedFile {
+    override suspend fun create(header: ContentHeader): StagedFile {
         lastHeader = header
         return InMemoryStagedFile()
     }

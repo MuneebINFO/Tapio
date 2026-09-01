@@ -1,6 +1,6 @@
 package com.tapio.core.transfer.domain
 
-import com.tapio.core.transfer.IncomingFile
+import com.tapio.core.transfer.IncomingContent
 
 /**
  * The state machine a transfer moves through, emitted as a `Flow` by
@@ -30,12 +30,12 @@ sealed interface TransferState {
 /** The payload of [TransferState.Completed]. */
 sealed interface TransferResult {
 
-    /** Sender side: the file left this device. */
+    /** Sender side: the payload left this device. */
     data class Sent(val bytesSent: Long) : TransferResult
 
     /**
-     * Receiver side: the file is fully written to a staging area and its checksum
-     * is verified. The user still has to accept it — see [IncomingFile].
+     * Receiver side: the payload is fully received and its checksum verified. The
+     * user still has to accept it — see [IncomingContent].
      */
-    data class Received(val file: IncomingFile) : TransferResult
+    data class Received(val content: IncomingContent) : TransferResult
 }
