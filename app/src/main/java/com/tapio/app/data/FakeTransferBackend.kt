@@ -3,10 +3,10 @@ package com.tapio.app.data
 import com.tapio.core.common.ContactCardCodec
 import com.tapio.core.common.ContentKind
 import com.tapio.core.common.SharedContent
-import com.tapio.core.nfc.domain.HandshakeOutcome
+import com.tapio.core.nfc.NfcTokenAdvertiser
 import com.tapio.core.nfc.domain.HandshakeRole
+import com.tapio.core.nfc.domain.NfcAvailability
 import com.tapio.core.nfc.domain.SessionToken
-import com.tapio.core.nfc.testing.FakeNfcHandshake
 import com.tapio.core.transfer.FileReceiver
 import com.tapio.core.transfer.FileSender
 import com.tapio.core.transfer.FileSource
@@ -14,11 +14,15 @@ import com.tapio.core.transfer.TransferChannel
 import com.tapio.core.transfer.TransferConfig
 import com.tapio.core.transfer.WifiDirectConnector
 import com.tapio.core.transfer.domain.ContentHeader
+import com.tapio.core.transfer.domain.ContentPreview
 import com.tapio.core.transfer.testing.InMemoryFileSink
-import com.tapio.core.transfer.testing.InMemoryFileSource
 import com.tapio.core.transfer.wire.Sha256
 import com.tapio.core.transfer.wire.TransferFraming
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -27,45 +31,41 @@ import java.util.UUID
 
 /**
  * A [TransferBackend] that runs both ends of a transfer in this process. Real files
- * are read through [fileSource]; only the NFC tap and the Wi-Fi Direct link are
- * simulated, so the whole send/receive experience — including the accept prompt
- * and contact save — works on a single device.
+ * are read through [fileSource]; the NFC tap and the Wi-Fi Direct link are simulated
+ * via [demo], so the whole experience works on a single device.
  */
 class FakeTransferBackend(
     private val fileSource: FileSource,
     private val transferConfig: TransferConfig = TransferConfig(),
 ) : TransferBackend, DemoControls {
 
-    private val nfc = FakeNfcHandshake()
-
-    private val samplePayload = ByteArray(SAMPLE_SIZE_BYTES) { ((it * 31) % 256).toByte() }
-    private val sampleFile = SharedContent.File(
-        uri = "tapio://demo/incoming",
-        displayName = "photo-recue.jpg",
-        mimeType = "image/jpeg",
-        byteSize = samplePayload.size.toLong(),
-    )
-    private val sampleContact = SharedContent.ContactCard(
-        displayName = "Léa Martin",
-        phoneNumber = "+33 6 98 76 54 32",
-        organization = "Studio Tapio",
-    )
+    private val sampleImage = ByteArray(SAMPLE_SIZE_BYTES) { ((it * 31) % 256).toByte() }
+    private val sampleContact = SharedContent.ContactCard("Léa Martin", "+33 6 98 76 54 32", "Studio Tapio")
 
     @Volatile
-    private var channels = DemoChannels()
+    private var senderChannels = DemoChannels()
 
-    override val advertiser get() = nfc
-    override val scanner get() = nfc
+    @Volatile
+    private var pendingIncoming: DemoChannels? = null
+
+    private val _incomingToken = MutableStateFlow<SessionToken?>(null)
+
     override val demo: DemoControls get() = this
+    override val incomingToken: StateFlow<SessionToken?> = _incomingToken.asStateFlow()
+
+    override val advertiser: NfcTokenAdvertiser = object : NfcTokenAdvertiser {
+        override fun checkAvailability() = NfcAvailability.Ready
+        override suspend fun advertise(token: SessionToken): Nothing = awaitCancellation()
+    }
 
     override fun newSender(): FileSender {
-        channels = DemoChannels()
-        return FileSender(channels.outgoingConnector, fileSource, transferConfig)
+        senderChannels = DemoChannels()
+        return FileSender(senderChannels.outgoingConnector, fileSource, transferConfig)
     }
 
     override fun newReceiver(): FileReceiver {
-        nfc.clearTaps()
-        channels = DemoChannels()
+        val channels = pendingIncoming ?: DemoChannels()
+        pendingIncoming = null
         return FileReceiver(channels.incomingConnector, InMemoryFileSink(), transferConfig)
     }
 
@@ -73,25 +73,41 @@ class FakeTransferBackend(
         fakeToken("Cet appareil", payloadSummary)
 
     override fun peerPicksUpContent() {
-        channels.open()
+        senderChannels.open()
     }
 
-    override fun peerSendsSampleFile() {
-        channels.incoming = fileWire(sampleFile.displayName, sampleFile.mimeType, samplePayload)
-        channels.open()
-        nfc.emitTap(HandshakeOutcome.Success(fakeToken("Téléphone de test", "Une photo · 768 Ko")))
+    override fun simulateIncomingFile() {
+        stageIncoming(fileWire("photo-recue.jpg", "image/jpeg", sampleImage))
+        _incomingToken.value = fakeToken("Téléphone de test", "Une photo · 768 Ko")
     }
 
-    override fun peerSharesSampleContact() {
-        val payload = ContactCardCodec.encode(sampleContact)
-        channels.incoming = wire(ContentKind.CONTACT, sampleContact.displayName, MIME_CONTACT, payload)
-        channels.open()
-        nfc.emitTap(HandshakeOutcome.Success(fakeToken("Téléphone de Léa", "Un contact")))
+    override fun simulateIncomingContact() {
+        stageIncoming(
+            wire(
+                ContentKind.CONTACT,
+                sampleContact.displayName,
+                "application/vnd.tapio.contact",
+                ContactCardCodec.encode(sampleContact),
+            ),
+        )
+        _incomingToken.value = fakeToken("Téléphone de Léa", "Un contact")
+    }
+
+    override fun clearIncoming() {
+        _incomingToken.value = null
+    }
+
+    private fun stageIncoming(wire: ByteArray) {
+        pendingIncoming = DemoChannels().apply {
+            incoming = wire
+            open()
+        }
     }
 
     private fun fakeToken(deviceName: String, summary: String) = SessionToken(
         sessionId = UUID.randomUUID(),
-        wifiDirectMac = FAKE_MAC,
+        wifiSsid = "DIRECT-tapio-demo",
+        wifiPassphrase = "demo-passphrase",
         deviceName = deviceName,
         payloadSummary = summary,
         role = HandshakeRole.SENDER,
@@ -99,8 +115,6 @@ class FakeTransferBackend(
     )
 
     private companion object {
-        const val FAKE_MAC = "02:00:00:00:00:00"
-        const val MIME_CONTACT = "application/vnd.tapio.contact"
         const val SAMPLE_SIZE_BYTES = 768 * 1024
 
         fun fileWire(name: String, mime: String, payload: ByteArray) =
@@ -108,7 +122,9 @@ class FakeTransferBackend(
 
         fun wire(kind: ContentKind, name: String, mime: String, payload: ByteArray): ByteArray =
             ByteArrayOutputStream().apply {
-                TransferFraming.writeHeader(this, ContentHeader(kind, name, mime, payload.size.toLong()))
+                val size = payload.size.toLong()
+                TransferFraming.writePreview(this, ContentPreview(kind, name, mime, size, null))
+                TransferFraming.writeHeader(this, ContentHeader(kind, name, mime, size))
                 write(payload)
                 write(Sha256.of(payload).bytes)
             }.toByteArray()
@@ -130,7 +146,10 @@ private class DemoChannels {
     val outgoingConnector = gatedConnector {
         object : TransferChannel {
             override suspend fun openOutput(): OutputStream = ByteArrayOutputStream()
-            override suspend fun openInput(): InputStream = error("outgoing channel has no input")
+            override suspend fun openInput(): InputStream = ByteArrayInputStream(
+                byteArrayOf(TransferFraming.ACK_BYTE.toByte(), TransferFraming.ACK_BYTE.toByte()),
+            )
+
             override fun close() = Unit
         }
     }
@@ -138,7 +157,7 @@ private class DemoChannels {
     val incomingConnector = gatedConnector {
         object : TransferChannel {
             override suspend fun openInput(): InputStream = ByteArrayInputStream(incoming)
-            override suspend fun openOutput(): OutputStream = error("incoming channel has no output")
+            override suspend fun openOutput(): OutputStream = ByteArrayOutputStream()
             override fun close() = Unit
         }
     }

@@ -1,21 +1,33 @@
 package com.tapio.app
 
 import android.app.Application
+import android.content.pm.PackageManager
+import android.os.Build
+import com.tapio.app.data.AndroidTransferBackend
 import com.tapio.app.data.FakeTransferBackend
 import com.tapio.app.data.TransferBackend
 import com.tapio.core.transfer.android.ContentResolverFileSource
 
 /**
- * Application entry point and hand-rolled dependency container (no DI framework —
- * see the "keep it light" note in CONTRIBUTING).
+ * Application entry point and hand-rolled dependency container.
  *
- * [transferBackend] is a [FakeTransferBackend] for now: it reads real files but
- * simulates the NFC tap and the Wi-Fi Direct link, so the whole UI is usable on a
- * single device. The real NFC + Wi-Fi Direct backend gets wired here in step 5.
+ * [transferBackend] is the real NFC + Wi-Fi Direct backend on a capable device
+ * (Android 10+, Wi-Fi Direct, NFC), and the in-process [FakeTransferBackend]
+ * otherwise — so the flows stay explorable on an emulator or an older phone.
  */
 class TapioApplication : Application() {
 
-    val transferBackend: TransferBackend by lazy {
-        FakeTransferBackend(fileSource = ContentResolverFileSource(this))
+    val transferBackend: TransferBackend by lazy { createBackend() }
+
+    private fun createBackend(): TransferBackend {
+        val capable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_DIRECT) &&
+            packageManager.hasSystemFeature(PackageManager.FEATURE_NFC)
+
+        return if (capable) {
+            AndroidTransferBackend(this)
+        } else {
+            FakeTransferBackend(fileSource = ContentResolverFileSource(this))
+        }
     }
 }

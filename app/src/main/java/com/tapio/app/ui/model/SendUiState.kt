@@ -6,13 +6,13 @@ import com.tapio.core.common.SharedContent
 /** Everything the send screen can be showing, in the order it usually happens. */
 sealed interface SendUiState {
 
-    /** Pick what to share: a photo/video, or a phone number. */
+    /** Pick what to share: a photo/video, or a contact. */
     data object ChoosingType : SendUiState
 
-    /** Filling in the name + number to share. */
-    data object EnteringContact : SendUiState
+    /** Content chosen; setting up the Wi-Fi Direct group before the tap can work. */
+    data class Preparing(val content: SharedContent) : SendUiState
 
-    /** Content chosen, NFC token is live: "hold the phones together". */
+    /** Group ready, NFC token is live: "hold the phones together". */
     data class ReadyToTap(val content: SharedContent) : SendUiState
 
     /** The peer connected; bytes are moving. [progress] is `0f..1f`. */
@@ -25,6 +25,7 @@ sealed interface SendUiState {
     data class Failed(
         val content: SharedContent?,
         @param:StringRes val messageRes: Int,
+        val enableWifi: Boolean = false,
     ) : SendUiState
 }
 

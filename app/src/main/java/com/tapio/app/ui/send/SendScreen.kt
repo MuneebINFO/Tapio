@@ -1,8 +1,12 @@
 package com.tapio.app.ui.send
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,8 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,7 +23,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -32,8 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tapio.app.R
+import com.tapio.app.data.PickPhoneNumber
 import com.tapio.app.data.TransferBackend
-import com.tapio.app.data.ownPhoneNumberOrNull
+import com.tapio.app.data.WifiPanel
+import com.tapio.app.data.readPickedNumber
 import com.tapio.app.data.toSharedContent
 import com.tapio.app.ui.components.ActionCard
 import com.tapio.app.ui.components.ActionDirection
@@ -59,14 +62,25 @@ fun SendScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val haptics = rememberTapioHaptics()
-    val ownNumber = remember { context.ownPhoneNumberOrNull() }
 
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+    val mediaPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let { viewModel.onFilePicked(it.toSharedContent(context)) }
     }
-    fun launchPicker() = picker.launch(
+    fun launchMediaPicker() = mediaPicker.launch(
         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
     )
+
+    val contactPicker = rememberLauncherForActivityResult(PickPhoneNumber()) { uri ->
+        uri?.let { context.readPickedNumber(it)?.let(viewModel::onContactPicked) }
+    }
+    val contactsPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) contactPicker.launch(Unit) }
+    fun launchContactPicker() {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) ==
+            PackageManager.PERMISSION_GRANTED
+        if (granted) contactPicker.launch(Unit) else contactsPermission.launch(Manifest.permission.READ_CONTACTS)
+    }
 
     LaunchedEffect(state::class) {
         when (state) {
@@ -88,21 +102,16 @@ fun SendScreen(
         AnimatedStatus(targetState = state, modifier = content) { current ->
             when (current) {
                 SendUiState.ChoosingType -> TypeChooser(
-                    onPickMedia = ::launchPicker,
-                    onPickContact = viewModel::chooseContact,
+                    onPickMedia = ::launchMediaPicker,
+                    onPickContact = ::launchContactPicker,
                 )
 
-                SendUiState.EnteringContact -> Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(top = 8.dp, bottom = 24.dp),
-                ) {
-                    ContactForm(
-                        ownNumber = ownNumber,
-                        onShare = viewModel::onContactEntered,
-                    )
-                }
+                is SendUiState.Preparing -> TransferStage(
+                    content = current.content,
+                    visual = { RadialTransfer(progress = 0f, modifier = Modifier.size(220.dp)) },
+                    title = stringResource(R.string.send_preparing),
+                    subtitle = null,
+                )
 
                 is SendUiState.ReadyToTap -> TransferStage(
                     content = current.content,
@@ -114,12 +123,17 @@ fun SendScreen(
                     },
                 )
 
-                is SendUiState.Transferring -> TransferStage(
-                    content = current.content,
-                    visual = { RadialTransfer(progress = current.progress, modifier = Modifier.size(240.dp)) },
-                    title = stringResource(R.string.send_transferring),
-                    subtitle = "${(current.progress * 100).toInt()} %",
-                )
+                is SendUiState.Transferring -> {
+                    // Progress arrives in steps; ease between them so the ring sweeps
+                    // instead of jumping.
+                    val progress by animateFloatAsState(current.progress, label = "sendProgress")
+                    TransferStage(
+                        content = current.content,
+                        visual = { RadialTransfer(progress = progress, modifier = Modifier.size(240.dp)) },
+                        title = stringResource(R.string.send_transferring),
+                        subtitle = "${(progress * 100).toInt()} %",
+                    )
+                }
 
                 is SendUiState.Sent -> ResultStage(
                     visual = { SuccessMark() },
@@ -135,6 +149,8 @@ fun SendScreen(
                     primaryLabel = stringResource(R.string.action_retry),
                     onPrimary = viewModel::retry,
                     onDone = onBack,
+                    secondaryLabel = if (current.enableWifi) stringResource(R.string.action_enable_wifi) else null,
+                    onSecondary = { WifiPanel.open(context) },
                 )
             }
         }
@@ -203,6 +219,8 @@ private fun ResultStage(
     primaryLabel: String,
     onPrimary: () -> Unit,
     onDone: () -> Unit,
+    secondaryLabel: String? = null,
+    onSecondary: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -214,12 +232,22 @@ private fun ResultStage(
         Spacer(Modifier.weight(1f))
         StageColumn(visual, title, subtitle = null)
         Spacer(Modifier.weight(1f))
-        Button(
-            onClick = onPrimary,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-        ) { Text(primaryLabel, style = MaterialTheme.typography.labelLarge) }
+        if (secondaryLabel != null) {
+            Button(
+                onClick = onSecondary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+            ) { Text(secondaryLabel, style = MaterialTheme.typography.labelLarge) }
+            TextButton(onClick = onPrimary) { Text(primaryLabel) }
+        } else {
+            Button(
+                onClick = onPrimary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+            ) { Text(primaryLabel, style = MaterialTheme.typography.labelLarge) }
+        }
         TextButton(onClick = onDone) { Text(stringResource(R.string.action_done)) }
     }
 }

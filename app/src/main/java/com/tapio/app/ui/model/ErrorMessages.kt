@@ -20,9 +20,11 @@ fun HandshakeError.toMessageRes(): Int = when (this) {
 @StringRes
 fun TransferError.toMessageRes(): Int = when (this) {
     TransferError.WifiDirectUnavailable -> R.string.err_wifi_unavailable
+    TransferError.WifiOff -> R.string.err_wifi_off
     TransferError.PermissionsMissing -> R.string.err_permissions_missing
     TransferError.ConnectionTimedOut -> R.string.err_connection_timeout
     TransferError.ConnectionLost -> R.string.err_connection_lost
+    TransferError.NotConfirmed -> R.string.err_not_confirmed
     is TransferError.ChecksumMismatch -> R.string.err_checksum_mismatch
     is TransferError.MalformedStream -> R.string.err_malformed_stream
     is TransferError.Io -> R.string.err_transfer_io

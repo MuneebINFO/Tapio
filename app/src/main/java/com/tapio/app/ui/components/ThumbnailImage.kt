@@ -1,6 +1,7 @@
 package com.tapio.app.ui.components
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.util.Size
@@ -39,12 +40,15 @@ fun ThumbnailImage(
     mimeType: String,
     contentDescription: String?,
     modifier: Modifier = Modifier,
+    jpegBytes: ByteArray? = null,
 ) {
     val context = LocalContext.current
-    var bitmap by remember(uri) { mutableStateOf<ImageBitmap?>(null) }
+    var bitmap by remember(uri, jpegBytes) { mutableStateOf<ImageBitmap?>(null) }
 
-    LaunchedEffect(uri) {
-        bitmap = withContext(Dispatchers.IO) { loadThumbnail(context, uri) }
+    LaunchedEffect(uri, jpegBytes) {
+        bitmap = withContext(Dispatchers.IO) {
+            jpegBytes?.let(::decodeJpeg) ?: loadThumbnail(context, uri)
+        }
     }
 
     Box(
@@ -70,6 +74,10 @@ fun ThumbnailImage(
         }
     }
 }
+
+private fun decodeJpeg(bytes: ByteArray): ImageBitmap? = runCatching {
+    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+}.getOrNull()
 
 private fun loadThumbnail(context: Context, uri: String): ImageBitmap? = runCatching {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null

@@ -11,7 +11,8 @@ import java.util.UUID
  * exchange.
  *
  * ```
- * TAPIO|<version>|<sessionId>|<wifiDirectMac>|<role>|<issuedAtEpochMs>|<b64(deviceName)>|<b64(payloadSummary)>
+ * TAPIO | version | sessionId | b64(wifiSsid) | b64(wifiPassphrase)
+ *       | role | issuedAtEpochMs | b64(deviceName) | b64(payloadSummary)
  * ```
  *
  * Free-text fields are Base64 so they can hold any character (including `|`). The
@@ -22,16 +23,15 @@ object SessionTokenCodec {
 
     private const val MAGIC = "TAPIO"
     private const val SEPARATOR = "|"
-    private const val FIELD_COUNT = 8
-
-    private val MAC_REGEX = Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
+    private const val FIELD_COUNT = 9
 
     /** Encodes [token] into the bytes to expose over NFC. */
     fun encode(token: SessionToken): ByteArray = listOf(
         MAGIC,
         token.protocolVersion.toString(),
         token.sessionId.toString(),
-        token.wifiDirectMac,
+        encodeText(token.wifiSsid),
+        encodeText(token.wifiPassphrase),
         token.role.name,
         token.issuedAtEpochMs.toString(),
         encodeText(token.deviceName),
@@ -57,29 +57,29 @@ object SessionTokenCodec {
         val sessionId = runCatching { UUID.fromString(fields[2]) }
             .getOrElse { malformed("invalid session id") }
 
-        val wifiDirectMac = fields[3]
-        if (!MAC_REGEX.matches(wifiDirectMac)) malformed("invalid Wi-Fi Direct MAC address")
+        val wifiSsid = decodeText(fields[3]) { "Wi-Fi SSID" }
+        val wifiPassphrase = decodeText(fields[4]) { "Wi-Fi passphrase" }
 
-        val role = runCatching { HandshakeRole.valueOf(fields[4]) }
-            .getOrElse { malformed("unknown role '${fields[4]}'") }
+        val role = runCatching { HandshakeRole.valueOf(fields[5]) }
+            .getOrElse { malformed("unknown role '${fields[5]}'") }
 
-        val issuedAt = fields[5].toLongOrNull() ?: malformed("timestamp is not a number")
+        val issuedAt = fields[6].toLongOrNull() ?: malformed("timestamp is not a number")
 
-        val deviceName = decodeText(fields[6]) { "device name" }
-        if (deviceName.isBlank()) malformed("device name is blank")
+        val deviceName = decodeText(fields[7]) { "device name" }
+        val payloadSummary = decodeText(fields[8]) { "payload summary" }
 
-        val payloadSummary = decodeText(fields[7]) { "payload summary" }
-        if (payloadSummary.isBlank()) malformed("payload summary is blank")
-
-        return SessionToken(
-            sessionId = sessionId,
-            wifiDirectMac = wifiDirectMac,
-            deviceName = deviceName,
-            payloadSummary = payloadSummary,
-            role = role,
-            issuedAtEpochMs = issuedAt,
-            protocolVersion = version,
-        )
+        return runCatching {
+            SessionToken(
+                sessionId = sessionId,
+                wifiSsid = wifiSsid,
+                wifiPassphrase = wifiPassphrase,
+                deviceName = deviceName,
+                payloadSummary = payloadSummary,
+                role = role,
+                issuedAtEpochMs = issuedAt,
+                protocolVersion = version,
+            )
+        }.getOrElse { malformed(it.message ?: "invalid field") }
     }
 
     private fun encodeText(value: String): String =

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tapio.app.R
+import com.tapio.app.data.DemoControls
 import com.tapio.app.ui.brand.TapioMark
 import com.tapio.app.ui.components.ActionCard
 import com.tapio.app.ui.components.ActionDirection
@@ -28,7 +30,7 @@ import com.tapio.app.ui.theme.WordmarkStyle
 @Composable
 fun HomeScreen(
     onSend: () -> Unit,
-    onReceive: () -> Unit,
+    demo: DemoControls?,
     modifier: Modifier = Modifier,
 ) {
     TapioScaffold(modifier = modifier) { content ->
@@ -52,24 +54,26 @@ fun HomeScreen(
 
             Spacer(Modifier.weight(1f))
 
-            Column(
+            ActionCard(
+                title = stringResource(R.string.home_send),
+                description = stringResource(R.string.home_send_desc),
+                direction = ActionDirection.SEND,
+                onClick = onSend,
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                ActionCard(
-                    title = stringResource(R.string.home_send),
-                    description = stringResource(R.string.home_send_desc),
-                    direction = ActionDirection.SEND,
-                    onClick = onSend,
-                )
-                ActionCard(
-                    title = stringResource(R.string.home_receive),
-                    description = stringResource(R.string.home_receive_desc),
-                    direction = ActionDirection.RECEIVE,
-                    onClick = onReceive,
-                )
+            )
+
+            if (demo != null) {
+                Spacer(Modifier.height(4.dp))
+                val fileLabel = "▶  " + stringResource(R.string.demo_incoming_file)
+                val contactLabel = "▶  " + stringResource(R.string.demo_incoming_contact)
+                TextButton(onClick = demo::simulateIncomingFile) {
+                    Text(fileLabel, style = MaterialTheme.typography.labelLarge)
+                }
+                TextButton(onClick = demo::simulateIncomingContact) {
+                    Text(contactLabel, style = MaterialTheme.typography.labelLarge)
+                }
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
         }
     }
 }
@@ -78,6 +82,6 @@ fun HomeScreen(
 @Composable
 private fun HomeScreenPreview() {
     TapioTheme {
-        HomeScreen(onSend = {}, onReceive = {}, modifier = Modifier.fillMaxSize())
+        HomeScreen(onSend = {}, demo = null, modifier = Modifier.fillMaxSize())
     }
 }

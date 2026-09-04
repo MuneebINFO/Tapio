@@ -12,7 +12,8 @@ class SessionTokenCodecTest {
 
     private val sample = SessionToken(
         sessionId = UUID.fromString("00000000-0000-0000-0000-0000000000ab"),
-        wifiDirectMac = "A1:B2:C3:D4:E5:F6",
+        wifiSsid = "DIRECT-aH-Tapio | Pixel",
+        wifiPassphrase = "correcthorse42",
         deviceName = "Marie's Pixel | 8",
         payloadSummary = "Une photo · 2,3 Mo",
         role = HandshakeRole.SENDER,
@@ -28,18 +29,21 @@ class SessionTokenCodecTest {
 
     @Test
     fun `free-text fields survive separators and unicode`() {
-        val tricky = sample.copy(deviceName = "N|cé's ☎ phone", payloadSummary = "Un | contact ✦")
+        val tricky = sample.copy(
+            deviceName = "N|cé's ☎ phone",
+            payloadSummary = "Un | contact ✦",
+            wifiSsid = "DIRECT-x|y ✦",
+        )
 
         val decoded = SessionTokenCodec.decode(SessionTokenCodec.encode(tricky))
 
-        assertEquals("N|cé's ☎ phone", decoded.deviceName)
-        assertEquals("Un | contact ✦", decoded.payloadSummary)
+        assertEquals(tricky, decoded)
     }
 
     @Test
     fun `unknown magic prefix is rejected`() {
         val error = assertThrows(HandshakeError.MalformedPayload::class.java) {
-            SessionTokenCodec.decode("NOPE|$v|x|y|z|0|AA==|AA==".toByteArray())
+            SessionTokenCodec.decode("NOPE|$v|x|y|z|SENDER|0|AA==|AA==".toByteArray())
         }
         assertEquals("Malformed handshake payload: unexpected structure", error.message)
     }
@@ -66,21 +70,9 @@ class SessionTokenCodecTest {
     }
 
     @Test
-    fun `malformed MAC address is rejected`() {
-        val bytes = SessionTokenCodec.encode(sample)
-            .toString(Charsets.UTF_8)
-            .replace("A1:B2:C3:D4:E5:F6", "not-a-mac")
-            .toByteArray()
-
-        assertThrows(HandshakeError.MalformedPayload::class.java) {
-            SessionTokenCodec.decode(bytes)
-        }
-    }
-
-    @Test
     fun `invalid session id is rejected`() {
         assertThrows(HandshakeError.MalformedPayload::class.java) {
-            SessionTokenCodec.decode("TAPIO|$v|not-a-uuid|A1:B2:C3:D4:E5:F6|SENDER|0|QQ==|QQ==".toByteArray())
+            SessionTokenCodec.decode("TAPIO|$v|not-a-uuid|RElSRUNU|cGFzc3dvcmQ4|SENDER|0|QQ==|QQ==".toByteArray())
         }
     }
 
@@ -88,19 +80,19 @@ class SessionTokenCodecTest {
     fun `unknown role is rejected`() {
         assertThrows(HandshakeError.MalformedPayload::class.java) {
             SessionTokenCodec.decode(
-                "TAPIO|$v|00000000-0000-0000-0000-0000000000ab|A1:B2:C3:D4:E5:F6|MIDDLE|0|QQ==|QQ=="
+                "TAPIO|$v|00000000-0000-0000-0000-0000000000ab|RElSRUNU|cGFzc3dvcmQ4|MIDDLE|0|QQ==|QQ=="
                     .toByteArray(),
             )
         }
     }
 
     @Test
-    fun `blank payload summary is rejected`() {
+    fun `a too-short passphrase is rejected`() {
+        // fields: magic|v|uuid|b64("DIRECT-x")|b64("short")|role|ts|b64("Dev")|b64("Sum")
+        val raw = "TAPIO|$v|00000000-0000-0000-0000-0000000000ab|RElSRUNULXg=|c2hvcnQ=|SENDER|0|RGV2|U3Vt"
+
         assertThrows(HandshakeError.MalformedPayload::class.java) {
-            SessionTokenCodec.decode(
-                "TAPIO|$v|00000000-0000-0000-0000-0000000000ab|A1:B2:C3:D4:E5:F6|SENDER|0|QQ==|"
-                    .toByteArray(),
-            )
+            SessionTokenCodec.decode(raw.toByteArray())
         }
     }
 }

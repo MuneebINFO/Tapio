@@ -8,6 +8,17 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
+    <!-- The incoming-transfer popup: a transparent full-screen window so Compose can
+         draw its own scrim + floating card over whatever the user was doing. -->
+    <style name="Theme.Tapio.Prompt" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
     <!-- Cold-start splash: the Tapio mark on the brand colour, handed off to the
          animated in-app intro (see IntroScreen) for visual continuity. -->
     <style name="Theme.Tapio.Starting" parent="Theme.SplashScreen">

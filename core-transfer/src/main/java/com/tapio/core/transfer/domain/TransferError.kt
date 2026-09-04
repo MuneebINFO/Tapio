@@ -10,6 +10,10 @@ sealed class TransferError(message: String, cause: Throwable? = null) : Exceptio
     data object WifiDirectUnavailable :
         TransferError("Wi-Fi Direct is not available on this device")
 
+    /** Wi-Fi is switched off — Wi-Fi Direct needs it on even though it uses no network. */
+    data object WifiOff :
+        TransferError("Turn Wi-Fi on to share")
+
     /** A runtime permission required for Wi-Fi Direct discovery is missing. */
     data object PermissionsMissing :
         TransferError("Permission for nearby Wi-Fi devices is required")
@@ -21,6 +25,10 @@ sealed class TransferError(message: String, cause: Throwable? = null) : Exceptio
     /** The connection dropped mid-transfer. */
     data object ConnectionLost :
         TransferError("Connection to the other phone was lost")
+
+    /** All bytes were sent, but the other phone never confirmed it received them. */
+    data object NotConfirmed :
+        TransferError("The other phone did not confirm it received the file")
 
     /** The received file's checksum does not match what the sender computed. */
     data class ChecksumMismatch(val expected: String, val actual: String) :

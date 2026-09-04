@@ -1,5 +1,6 @@
 package com.tapio.app.ui.send
 
+import com.tapio.app.data.ActiveTransfer
 import com.tapio.app.data.FakeTransferBackend
 import com.tapio.app.ui.model.SendUiState
 import com.tapio.core.common.SharedContent
@@ -25,7 +26,11 @@ class SendViewModelTest {
     private val scheduler = TestCoroutineScheduler()
 
     @Before
-    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher(scheduler))
+    fun setUp() {
+        Dispatchers.setMain(UnconfinedTestDispatcher(scheduler))
+        // The one-transfer-at-a-time lock is process-wide; each test starts from idle.
+        ActiveTransfer.reset()
+    }
 
     @After
     fun tearDown() = Dispatchers.resetMain()
@@ -58,25 +63,13 @@ class SendViewModelTest {
     }
 
     @Test
-    fun `entering a contact moves to ReadyToTap with a ContactCard`() = runTest(scheduler) {
+    fun `picking a contact moves to ReadyToTap with that ContactCard`() = runTest(scheduler) {
         val viewModel = SendViewModel(backend())
+        val card = SharedContent.ContactCard("Jean Dupont", "+33 6 12 34 56 78")
 
-        viewModel.onContactEntered("  Jean Dupont ", " +33 6 12 34 56 78 ", null)
+        viewModel.onContactPicked(card)
 
-        val ready = viewModel.state.value as SendUiState.ReadyToTap
-        val card = ready.content as SharedContent.ContactCard
-        assertEquals("Jean Dupont", card.displayName)
-        assertEquals("+33 6 12 34 56 78", card.phoneNumber)
-    }
-
-    @Test
-    fun `a blank contact is ignored`() = runTest(scheduler) {
-        val viewModel = SendViewModel(backend())
-        viewModel.chooseContact()
-
-        viewModel.onContactEntered("", "", null)
-
-        assertEquals(SendUiState.EnteringContact, viewModel.state.value)
+        assertEquals(card, (viewModel.state.value as SendUiState.ReadyToTap).content)
     }
 
     @Test
@@ -96,7 +89,7 @@ class SendViewModelTest {
         val backend = backend()
         val viewModel = SendViewModel(backend)
 
-        viewModel.onContactEntered("Marie", "0601020304", null)
+        viewModel.onContactPicked(SharedContent.ContactCard("Marie", "0601020304"))
         backend.peerPicksUpContent()
         advanceUntilIdle()
 

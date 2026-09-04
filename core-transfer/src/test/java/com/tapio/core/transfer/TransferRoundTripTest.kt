@@ -38,7 +38,7 @@ class TransferRoundTripTest {
             FakeWifiDirectConnector(InMemoryTransferChannel(senderChannel.writtenBytes())),
             sink,
             TransferFixtures.config(chunkSizeBytes = 8192),
-        ).receive(TransferFixtures.token()).toList()
+        ).receive(TransferFixtures.token()) { true }.toList()
 
         val incoming = (states.last() as TransferState.Completed).result as TransferResult.Received
         val file = incoming.content as IncomingContent.File
@@ -63,7 +63,7 @@ class TransferRoundTripTest {
             FakeWifiDirectConnector(InMemoryTransferChannel(senderChannel.writtenBytes())),
             InMemoryFileSink(),
             TransferFixtures.config(),
-        ).receive(TransferFixtures.token()).toList()
+        ).receive(TransferFixtures.token()) { true }.toList()
 
         val received = (states.last() as TransferState.Completed).result as TransferResult.Received
         assertEquals(card, (received.content as IncomingContent.Contact).card)

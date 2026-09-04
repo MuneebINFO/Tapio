@@ -1,17 +1,17 @@
 package com.tapio.core.nfc
 
-import com.tapio.core.nfc.domain.HandshakeOutcome
 import com.tapio.core.nfc.domain.NfcAvailability
 import com.tapio.core.nfc.domain.SessionToken
-import kotlinx.coroutines.flow.Flow
 
 /**
  * Sender side of the handshake: exposes a locally-minted [SessionToken] to whatever
  * device touches this one next.
  *
- * Split from [NfcTokenScanner] on purpose — a screen is almost always doing exactly
- * one of "I want to send" or "I'm waiting to receive", and the two are backed by
- * completely different Android machinery (Host Card Emulation vs. reader mode).
+ * There is no receiver-side counterpart interface. A phone does not *scan* for a tap
+ * — it gets tapped: the platform dispatches the sender's emulated tag to an activity,
+ * which reads the token with
+ * [TapioTagReader][com.tapio.core.nfc.android.TapioTagReader]. Only the sending half
+ * is a long-lived, injectable capability worth abstracting.
  */
 interface NfcTokenAdvertiser {
 
@@ -25,19 +25,4 @@ interface NfcTokenAdvertiser {
      * @throws com.tapio.core.nfc.domain.HandshakeError.NfcUnsupported if there is no NFC hardware.
      */
     suspend fun advertise(token: SessionToken): Nothing
-}
-
-/**
- * Receiver side of the handshake: reads a [SessionToken] from the next device that
- * touches this one.
- */
-interface NfcTokenScanner {
-
-    fun checkAvailability(): NfcAvailability
-
-    /**
-     * Cold flow that activates NFC scanning on collection and tears it down on
-     * cancellation. Emits one [HandshakeOutcome] per tap.
-     */
-    fun scan(): Flow<HandshakeOutcome>
 }

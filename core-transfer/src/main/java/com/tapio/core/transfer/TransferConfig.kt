@@ -9,14 +9,17 @@ import kotlinx.coroutines.Dispatchers
  *
  * @property chunkSizeBytes buffer size for each read/write of the file body.
  * @property progressIntervalMs minimum gap between [com.tapio.core.transfer.domain.TransferState.InProgress] emissions.
- * @property connectTimeoutMs how long to wait for the Wi-Fi Direct connection.
+ * @property connectTimeoutMs outer safety net for the whole connection phase. It has
+ *   to outlast every stage the transport times out on its own (accept, group join,
+ *   dialling) **plus the time the two people take to touch their phones** — the
+ *   sender starts listening before the tap happens.
  * @property clock time source for progress throttling.
  * @property dispatcher dispatcher the blocking stream work runs on.
  */
 data class TransferConfig(
     val chunkSizeBytes: Int = 64 * 1024,
     val progressIntervalMs: Long = 100L,
-    val connectTimeoutMs: Long = 15_000L,
+    val connectTimeoutMs: Long = 90_000L,
     val clock: () -> Long = System::currentTimeMillis,
     val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {

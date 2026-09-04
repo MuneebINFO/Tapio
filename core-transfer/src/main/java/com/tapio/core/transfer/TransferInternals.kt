@@ -26,9 +26,11 @@ internal suspend fun FlowCollector<TransferState>.connectOrFail(
     try {
         withTimeout(config.connectTimeoutMs) { connector.connect(token) }
     } catch (timeout: TimeoutCancellationException) {
+        TransferLog.w("connect gave up after ${config.connectTimeoutMs} ms")
         emit(TransferState.Failed(TransferError.ConnectionTimedOut))
         null
     } catch (error: TransferError) {
+        TransferLog.w("connect failed: $error")
         emit(TransferState.Failed(error))
         null
     }

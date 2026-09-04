@@ -14,6 +14,15 @@ sealed interface TransferState {
     /** Establishing the Wi-Fi Direct connection off the back of the NFC handshake. */
     data object Connecting : TransferState
 
+    /** Receiver: connected, the [preview] is in — waiting for the user to accept or decline. */
+    data class PreviewReady(val preview: ContentPreview) : TransferState
+
+    /** Sender: preview sent, waiting for the other person's decision. */
+    data object AwaitingPeerDecision : TransferState
+
+    /** Terminal: the preview was declined; no bytes were transferred. */
+    data object Declined : TransferState
+
     /** Bytes are moving; [progress] updates repeatedly. */
     data class InProgress(val progress: TransferProgress) : TransferState
 

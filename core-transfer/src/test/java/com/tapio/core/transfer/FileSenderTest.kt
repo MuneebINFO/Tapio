@@ -20,10 +20,13 @@ import org.junit.Test
 
 class FileSenderTest {
 
+    private val accept = TransferFraming.ACK_BYTE.toByte()
+    private val decline = TransferFraming.DECLINE_BYTE.toByte()
+
     @Test
-    fun `happy path emits Connecting, progress, then Completed and frames the wire correctly`() = runTest {
+    fun `happy path emits preview, progress and Completed, and frames the wire`() = runTest {
         val payload = ByteArray(10_000) { (it % 251).toByte() }
-        val channel = InMemoryTransferChannel()
+        val channel = InMemoryTransferChannel(incoming = byteArrayOf(accept, accept))
         val sender = FileSender(
             connector = FakeWifiDirectConnector(channel),
             fileSource = InMemoryFileSource(mapOf("content://pic" to payload)),
@@ -36,15 +39,16 @@ class FileSenderTest {
         ).toList()
 
         assertEquals(TransferState.Connecting, states.first())
+        assertTrue(states.contains(TransferState.AwaitingPeerDecision))
         assertTrue("expected at least one progress update", states.any { it is TransferState.InProgress })
-        assertEquals(
-            TransferState.Completed(TransferResult.Sent(payload.size.toLong())),
-            states.last(),
-        )
+        assertEquals(TransferState.Completed(TransferResult.Sent(payload.size.toLong())), states.last())
 
         val wire = channel.writtenBytes().inputStream()
+        val preview = TransferFraming.readPreview(wire)
+        assertEquals("photo.jpg", preview.displayName)
+        assertEquals(payload.size.toLong(), preview.sizeBytes)
+
         val header = TransferFraming.readHeader(wire)
-        assertEquals("photo.jpg", header.displayName)
         assertEquals(payload.size.toLong(), header.sizeBytes)
         assertArrayEquals(payload, wire.readFully(payload.size))
         assertArrayEquals(Sha256.of(payload).bytes, TransferFraming.readChecksumTrailer(wire))
@@ -73,7 +77,7 @@ class FileSenderTest {
 
     @Test
     fun `sends a contact card through the same framed channel`() = runTest {
-        val channel = InMemoryTransferChannel()
+        val channel = InMemoryTransferChannel(incoming = byteArrayOf(accept, accept))
         val sender = FileSender(
             FakeWifiDirectConnector(channel),
             InMemoryFileSource(emptyMap()),
@@ -83,14 +87,45 @@ class FileSenderTest {
 
         val states = sender.send(card, TransferFixtures.token()).toList()
 
-        assertEquals(TransferState.Connecting, states.first())
         assertTrue(states.last() is TransferState.Completed)
 
         val wire = channel.writtenBytes().inputStream()
+        assertEquals(ContentKind.CONTACT, TransferFraming.readPreview(wire).contentKind)
         val header = TransferFraming.readHeader(wire)
-        assertEquals(ContentKind.CONTACT, header.contentKind)
         assertEquals("Marie Curie", header.displayName)
         assertEquals(card, ContactCardCodec.decode(wire.readFully(header.sizeBytes.toInt())))
+    }
+
+    @Test
+    fun `a declined preview ends at Declined and sends nothing`() = runTest {
+        val channel = InMemoryTransferChannel(incoming = byteArrayOf(decline))
+        val sender = FileSender(
+            FakeWifiDirectConnector(channel),
+            InMemoryFileSource(mapOf("u" to ByteArray(500))),
+            TransferFixtures.config(),
+        )
+
+        val states = sender.send(TransferFixtures.fileContent("u", 500), TransferFixtures.token()).toList()
+
+        assertEquals(TransferState.Declined, states.last())
+        // only the preview frame was written
+        val wire = channel.writtenBytes().inputStream()
+        TransferFraming.readPreview(wire)
+        assertEquals(-1, wire.read())
+    }
+
+    @Test
+    fun `a missing receipt ack is surfaced as NotConfirmed`() = runTest {
+        val channel = InMemoryTransferChannel(incoming = byteArrayOf(accept)) // accept, then no receipt
+        val sender = FileSender(
+            FakeWifiDirectConnector(channel),
+            InMemoryFileSource(mapOf("u" to ByteArray(200))),
+            TransferFixtures.config(),
+        )
+
+        val states = sender.send(TransferFixtures.fileContent("u", 200), TransferFixtures.token()).toList()
+
+        assertEquals(TransferState.Failed(TransferError.NotConfirmed), states.last())
     }
 
     @Test

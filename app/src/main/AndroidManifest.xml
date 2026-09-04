@@ -2,8 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
     <application
         android:name=".TapioApplication"
@@ -24,17 +23,30 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
 
-            <!-- A tap from another Tapio phone lands here even when the app is closed. -->
+        <!-- The incoming-transfer popup. A tap opens it straight over whatever is on
+             screen — Tapio itself never comes to the foreground. NDEF works where the
+             platform allows HCE of the NDEF AID; TECH is the fallback everywhere. -->
+        <activity
+            android:name=".TransferPromptActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:noHistory="true"
+            android:taskAffinity=".prompt"
+            android:theme="@style/Theme.Tapio.Prompt">
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/vnd.tapio.handshake" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.nfc.action.TECH_DISCOVERED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.nfc.action.TECH_DISCOVERED"
+                android:resource="@xml/nfc_tech_filter" />
         </activity>
-
-        <receiver
-            android:name=".data.TransferDeclineReceiver"
-            android:exported="false" />
     </application>
 </manifest>

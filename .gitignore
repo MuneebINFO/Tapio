@@ -1,6 +1,8 @@
 # Gradle
 .gradle/
 build/
+# Eclipse/VS Code Java output, never part of the Gradle build
+bin/
 # The wrapper JAR is intentionally committed (see gradle/wrapper/).
 
 # Android / IntelliJ

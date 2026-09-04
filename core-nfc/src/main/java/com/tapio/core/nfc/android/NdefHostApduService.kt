@@ -2,6 +2,7 @@ package com.tapio.core.nfc.android
 
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
+import android.util.Log
 
 /**
  * Emulates an **NDEF Type-4 tag** so that touching this phone launches Tapio on
@@ -15,7 +16,7 @@ import android.os.Bundle
  *
  * NOTE: needs on-device validation. Some devices reserve the Type-4 AID for the
  * platform; where HCE of `D2760000850101` is not permitted, the in-app reader-mode
- * path ([ReaderModeTokenScanner]) still works.
+ * path (reader mode) still works.
  */
 class NdefHostApduService : HostApduService() {
 
@@ -27,22 +28,35 @@ class NdefHostApduService : HostApduService() {
         return when {
             apdu.matches(SELECT_NDEF_APP) -> {
                 selected = Selected.NONE
-                SW_OK
+                // Nothing to share yet → refuse the SELECT so the reader falls back to
+                // the TECH_DISCOVERED dispatch instead of getting an empty NDEF message.
+                if (StagedHandshake.tokenBytes == null) {
+                    Log.i(TAG, "NDEF app SELECT refused — no token staged")
+                    SW_ERROR
+                } else {
+                    Log.i(TAG, "NDEF app selected")
+                    SW_OK
+                }
             }
 
             apdu.isSelectFile(FILE_ID_CC) -> {
                 selected = Selected.CC
+                Log.i(TAG, "SELECT CC")
                 SW_OK
             }
 
             apdu.isSelectFile(FILE_ID_NDEF) -> {
                 selected = Selected.NDEF
+                Log.i(TAG, "SELECT NDEF file (${ndefFile().size} bytes)")
                 SW_OK
             }
 
             apdu.isReadBinary() -> readBinary(apdu)
 
-            else -> SW_ERROR
+            else -> {
+                Log.w(TAG, "unhandled APDU: ${apdu.toHex()}")
+                SW_ERROR
+            }
         }
     }
 
@@ -57,13 +71,14 @@ class NdefHostApduService : HostApduService() {
             Selected.NONE -> ByteArray(0)
         }
         val offset = (apdu[2].toInt() and 0xFF shl 8) or (apdu[3].toInt() and 0xFF)
-        val length = apdu[4].toInt() and 0xFF
+        // Le == 0 means "up to 256 bytes", not "zero" — reading it literally made every
+        // NDEF read come back empty, so the platform fell back to TECH dispatch.
+        val requested = (apdu[4].toInt() and 0xFF).let { if (it == 0) MAX_LE else it }
 
-        return if (offset + length > file.size) {
-            SW_ERROR
-        } else {
-            file.copyOfRange(offset, offset + length) + SW_OK
-        }
+        if (offset >= file.size) return SW_ERROR
+        val end = minOf(offset + requested, file.size)
+        Log.i(TAG, "READ $selected offset=$offset len=${end - offset}/${file.size}")
+        return file.copyOfRange(offset, end) + SW_OK
     }
 
     /** `[NLEN hi][NLEN lo][NDEF message bytes]` — an empty message when nothing is staged. */
@@ -77,6 +92,11 @@ class NdefHostApduService : HostApduService() {
     private enum class Selected { NONE, CC, NDEF }
 
     private companion object {
+        const val TAG = "TapioHce"
+
+        /** A `Le` byte of 0x00 asks for the maximum short-APDU response. */
+        const val MAX_LE = 256
+
         val SW_OK = byteArrayOf(0x90.toByte(), 0x00)
         val SW_ERROR = byteArrayOf(0x6A, 0x82.toByte())
 
@@ -102,6 +122,8 @@ class NdefHostApduService : HostApduService() {
             0x00,                   // read access: granted
             0xFF.toByte(),          // write access: denied
         )
+
+        fun ByteArray.toHex(): String = joinToString(" ") { "%02X".format(it) }
 
         fun ByteArray.matches(prefix: ByteArray): Boolean =
             size >= prefix.size && copyOfRange(0, prefix.size).contentEquals(prefix)

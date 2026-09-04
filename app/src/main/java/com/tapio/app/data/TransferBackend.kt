@@ -1,22 +1,22 @@
 package com.tapio.app.data
 
 import com.tapio.core.nfc.NfcTokenAdvertiser
-import com.tapio.core.nfc.NfcTokenScanner
 import com.tapio.core.nfc.domain.SessionToken
 import com.tapio.core.transfer.FileReceiver
 import com.tapio.core.transfer.FileSender
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * The seam between the UI/ViewModels and the `core-nfc` / `core-transfer` machinery.
  *
- * [FakeTransferBackend] (in-memory, drives both sides of a transfer in-process)
- * powers the app today; a real NFC + Wi-Fi Direct backend gets wired once step 5
- * lands.
+ * There is no "scanner": a phone receives by being **tapped** — the NFC tag the
+ * sender emulates launches Tapio through the manifest intent filter, even when the
+ * app is closed. The token then arrives as an `Intent`, not a scan.
  */
 interface TransferBackend {
 
+    /** Sender side: keeps the handshake token live over NFC while "hold the phones together" shows. */
     val advertiser: NfcTokenAdvertiser
-    val scanner: NfcTokenScanner
 
     fun newSender(): FileSender
     fun newReceiver(): FileReceiver
@@ -27,19 +27,29 @@ interface TransferBackend {
      */
     suspend fun createLocalToken(payloadSummary: String): SessionToken
 
-    /** Debug affordances for exploring the flows on a single device; no-ops in production. */
+    /**
+     * Sender side: releases everything the current share holds — the Wi-Fi Direct
+     * group above all. Called on every outcome (sent, declined, failed, abandoned),
+     * because only a fully closed session lets the next one start.
+     */
+    suspend fun endSession() = Unit
+
+    /** Single-device demo hooks; `null` on a real device. */
     val demo: DemoControls?
 }
 
-/** Single-device demo hooks — fake a second phone. */
+/** Fakes the "other phone" so the flows can be tried on one device (emulator / no Wi-Fi Direct). */
 interface DemoControls {
 
-    /** From the send screen: pretend a peer tapped and is now pulling the content. */
+    /** Send screen: pretend a peer tapped and is now pulling the content. */
     fun peerPicksUpContent()
 
-    /** From the receive screen: pretend a peer tapped and is sending us a sample photo. */
-    fun peerSendsSampleFile()
+    /** A pretend incoming tap; `MainActivity` routes it to the accept prompt. */
+    val incomingToken: StateFlow<SessionToken?>
 
-    /** From the receive screen: pretend a peer is sharing a contact card with us. */
-    fun peerSharesSampleContact()
+    fun simulateIncomingFile()
+
+    fun simulateIncomingContact()
+
+    fun clearIncoming()
 }

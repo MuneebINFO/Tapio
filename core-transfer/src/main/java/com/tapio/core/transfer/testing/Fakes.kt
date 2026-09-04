@@ -10,6 +10,7 @@ import com.tapio.core.transfer.TransferChannel
 import com.tapio.core.transfer.WifiDirectConnector
 import com.tapio.core.transfer.domain.ContentHeader
 import com.tapio.core.transfer.domain.TransferError
+import com.tapio.core.transfer.wire.TransferFraming
 import kotlinx.coroutines.delay
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -23,9 +24,16 @@ import java.io.OutputStream
  * Shipped in `main` (not `src/test`) so `:app` and future modules can reuse them.
  */
 
-/** A [TransferChannel] whose output is captured and whose input replays fixed bytes. */
+/**
+ * A [TransferChannel] whose output is captured and whose input replays fixed bytes.
+ * Defaults the input to "accept the preview" + "confirm receipt" so a sender under
+ * test runs to completion.
+ */
 class InMemoryTransferChannel(
-    private val incoming: ByteArray = ByteArray(0),
+    private val incoming: ByteArray = byteArrayOf(
+        TransferFraming.ACK_BYTE.toByte(),
+        TransferFraming.ACK_BYTE.toByte(),
+    ),
 ) : TransferChannel {
 
     val sent = ByteArrayOutputStream()

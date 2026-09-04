@@ -5,76 +5,58 @@
     <!-- Home -->
     <string name="home_tagline">Approchez deux téléphones pour partager</string>
     <string name="home_send">Envoyer</string>
-    <string name="home_send_desc">Une photo, une vidéo ou un numéro</string>
-    <string name="home_receive">Recevoir</string>
-    <string name="home_receive_desc">Attendre un envoi d\'un autre téléphone</string>
+    <string name="home_send_desc">Une photo, une vidéo ou un contact</string>
 
+    <!-- Actions -->
     <string name="action_back">Retour</string>
     <string name="action_retry">Réessayer</string>
     <string name="action_done">Terminé</string>
-    <string name="action_cancel">Annuler</string>
+    <string name="action_enable_wifi">Activer le Wi-Fi</string>
 
     <!-- Send -->
     <string name="send_title">Envoyer</string>
     <string name="send_choose_prompt">Que voulez-vous partager ?</string>
     <string name="send_choose_media">Photo ou vidéo</string>
     <string name="send_choose_media_desc">Depuis la galerie</string>
-    <string name="send_choose_contact">Un numéro de téléphone</string>
-    <string name="send_choose_contact_desc">Le vôtre ou celui de quelqu\'un d\'autre</string>
-    <string name="send_pick_button">Choisir dans la galerie</string>
+    <string name="send_choose_contact">Un contact</string>
+    <string name="send_choose_contact_desc">Choisir dans le répertoire du téléphone</string>
+    <string name="send_preparing">Préparation…</string>
     <string name="send_ready">Approchez les téléphones</string>
     <string name="send_ready_hint">Gardez-les en contact jusqu\'à la fin</string>
     <string name="send_transferring">Envoi en cours…</string>
     <string name="send_done">Envoyé</string>
+    <string name="send_declined">L\'autre personne a refusé</string>
     <string name="send_another">Partager autre chose</string>
 
-    <!-- Contact form -->
-    <string name="contact_form_title">Numéro à partager</string>
-    <string name="contact_form_name">Nom</string>
-    <string name="contact_form_number">Numéro de téléphone</string>
-    <string name="contact_form_org">Société (facultatif)</string>
-    <string name="contact_form_use_mine">Utiliser mon numéro</string>
-    <string name="contact_form_share">Partager ce numéro</string>
+    <!-- Permissions -->
+    <string name="perm_title">Une autorisation est requise</string>
+    <string name="perm_body">Tapio a besoin d\'accéder aux appareils Wi-Fi à proximité : c\'est par là que le fichier passe d\'un téléphone à l\'autre.</string>
+    <string name="perm_allow">Autoriser</string>
+    <string name="perm_open_settings">Ouvrir les réglages de l\'app</string>
 
-    <!-- Receive -->
-    <string name="receive_title">Recevoir</string>
-    <string name="receive_waiting">En attente d\'un contact…</string>
-    <string name="receive_waiting_hint">Demandez à l\'autre personne d\'approcher son téléphone</string>
-    <string name="receive_accept_title">%1$s veut partager</string>
-    <string name="receive_accept">Accepter</string>
-    <string name="receive_refuse">Refuser</string>
-    <string name="receive_connecting">Connexion…</string>
-    <string name="receive_receiving">Réception en cours…</string>
-    <string name="receive_verifying">Vérification…</string>
-    <string name="receive_saved">Fichier enregistré</string>
-    <string name="receive_contact_saved">Contact ajouté</string>
-    <string name="receive_declined">Refusé</string>
-    <string name="receive_listen_again">Attendre un nouvel envoi</string>
-
-    <!-- Save file dialog -->
-    <string name="save_dialog_title">Enregistrer ce fichier ?</string>
-    <string name="save_dialog_accept">Enregistrer</string>
-    <string name="save_dialog_decline">Refuser</string>
+    <!-- Incoming-transfer popup: the whole receive experience (see TransferPromptActivity) -->
+    <string name="prompt_tap_again">Retouchez les téléphones</string>
+    <string name="prompt_tap_again_hint">Le contact a été trop bref</string>
+    <string name="prompt_connecting">Connexion…</string>
+    <string name="prompt_wants_to_share">%1$s veut vous partager</string>
+    <string name="prompt_receiving">Réception…</string>
+    <string name="prompt_verifying">Vérification…</string>
+    <string name="prompt_save_file">Enregistrer ce fichier ?</string>
+    <string name="prompt_save_contact">Ajouter ce contact ?</string>
+    <string name="prompt_accept">Accepter</string>
+    <string name="prompt_refuse">Refuser</string>
+    <string name="prompt_save">Enregistrer</string>
+    <string name="prompt_add">Ajouter</string>
+    <string name="prompt_close">Fermer</string>
+    <string name="prompt_saved">Enregistré dans la galerie</string>
+    <string name="prompt_contact_opened">Fiche contact ouverte</string>
+    <string name="prompt_declined">Refusé</string>
     <string name="save_thumbnail_cd">Aperçu du fichier reçu</string>
-
-    <!-- Save contact dialog -->
-    <string name="save_contact_title">Enregistrer ce contact ?</string>
-    <string name="save_contact_accept">Ajouter aux contacts</string>
-    <string name="save_contact_decline">Refuser</string>
-
-    <string name="content_contact">Contact</string>
-
-    <!-- Incoming-transfer notification -->
-    <string name="notif_channel_name">Envois entrants</string>
-    <string name="notif_channel_desc">Quand quelqu\'un veut vous partager un fichier ou un contact</string>
-    <string name="notif_incoming_title">%1$s veut vous partager quelque chose</string>
-    <string name="notif_accept">Accepter</string>
-    <string name="notif_refuse">Refuser</string>
 
     <!-- Demo (single-device) -->
     <string name="demo_peer_pickup">Simuler le contact d\'un autre téléphone</string>
-    <string name="demo_peer_send_file">Simuler une photo entrante</string>
-    <string name="demo_peer_send_contact">Simuler un contact entrant</string>
+    <string name="demo_incoming_file">Simuler une photo entrante</string>
+    <string name="demo_incoming_contact">Simuler un contact entrant</string>
 
     <!-- Errors -->
     <string name="err_prepare_failed">Impossible de préparer le partage</string>
@@ -86,10 +68,13 @@
     <string name="err_protocol_mismatch">L\'autre téléphone utilise une version incompatible de Tapio</string>
     <string name="err_nfc_io">Erreur de communication NFC</string>
     <string name="err_wifi_unavailable">Le Wi-Fi Direct n\'est pas disponible sur cet appareil</string>
+    <string name="err_wifi_off">Activez le Wi-Fi pour partager. Vous pouvez rester en données mobiles — le Wi-Fi n\'a pas besoin d\'être connecté à un réseau.</string>
     <string name="err_permissions_missing">Autorisation requise pour les appareils Wi-Fi à proximité</string>
     <string name="err_connection_timeout">Impossible de joindre l\'autre téléphone à temps</string>
     <string name="err_connection_lost">Connexion perdue avec l\'autre téléphone</string>
+    <string name="err_not_confirmed">L\'autre téléphone n\'a pas confirmé la réception</string>
     <string name="err_checksum_mismatch">Le fichier reçu est corrompu</string>
     <string name="err_malformed_stream">Transfert interrompu ou corrompu</string>
+    <string name="err_transfer_busy">Un transfert est déjà en cours sur ce téléphone</string>
     <string name="err_transfer_io">Le transfert a échoué</string>
 </resources>

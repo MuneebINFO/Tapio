@@ -33,6 +33,9 @@ interface FileSource {
 
     /** @throws TransferError if the content cannot be opened. */
     suspend fun openStream(content: SharedContent.File): InputStream
+
+    /** A small JPEG for the pre-accept preview, or `null` if none can be made. */
+    suspend fun thumbnail(content: SharedContent.File): ByteArray? = null
 }
 
 /**

@@ -5,6 +5,7 @@ import com.tapio.core.common.SharedContent
 import com.tapio.core.nfc.domain.HandshakeRole
 import com.tapio.core.nfc.domain.SessionToken
 import com.tapio.core.transfer.domain.ContentHeader
+import com.tapio.core.transfer.domain.ContentPreview
 import com.tapio.core.transfer.wire.Sha256
 import com.tapio.core.transfer.wire.TransferFraming
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,8 @@ internal object TransferFixtures {
 
     fun token() = SessionToken(
         sessionId = UUID.fromString("00000000-0000-0000-0000-0000000000ab"),
-        wifiDirectMac = "02:00:00:00:00:00",
+        wifiSsid = "DIRECT-xy-Peer",
+        wifiPassphrase = "passphrase1",
         deviceName = "Peer",
         payloadSummary = "Un fichier",
         role = HandshakeRole.RECEIVER,
@@ -37,7 +39,7 @@ internal object TransferFixtures {
     fun contactContent(name: String = "Jean Dupont", number: String = "+33 6 12 34 56 78") =
         SharedContent.ContactCard(displayName = name, phoneNumber = number)
 
-    /** Builds the exact bytes a sender would put on the wire for [payload]. */
+    /** The full byte stream a sender would put on the wire: `[preview][header][payload][trailer]`. */
     fun wireBytes(
         name: String,
         mime: String,
@@ -45,6 +47,7 @@ internal object TransferFixtures {
         kind: ContentKind = ContentKind.FILE,
         trailer: ByteArray = Sha256.of(payload).bytes,
     ): ByteArray = ByteArrayOutputStream().apply {
+        TransferFraming.writePreview(this, ContentPreview(kind, name, mime, payload.size.toLong(), null))
         TransferFraming.writeHeader(this, ContentHeader(kind, name, mime, payload.size.toLong()))
         write(payload)
         write(trailer)

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lets a *closed* Tapio be launched by a tap when the sender's NDEF tag emulation
+  is not readable (some devices reserve the NDEF Type-4 AID for the platform).
+  MainActivity then runs the APDU exchange itself from the Tag in the intent.
+-->
+<resources>
+    <tech-list>
+        <tech>android.nfc.tech.IsoDep</tech>
+    </tech-list>
+</resources>
